@@ -1,0 +1,3 @@
+#!/bin/bash
+
+csound -+rtmidi=jack -+rtaudio=jack -b 512 -i adc -o dac amsynth.csd
