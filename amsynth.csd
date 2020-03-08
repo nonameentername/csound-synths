@@ -16,8 +16,15 @@ ftload "patch.txt", 1, 2
 
 iAttMidi table 0, 2
 iDecMidi table 1, 2
+iSus table 2, 2
+iRelMidi table 3, 2
+iOsc1TypeMidi table 4, 2
+
 initc7 1, 13, iAttMidi / 2.5
 initc7 1, 14, iDecMidi / 2.5
+initc7 1, 15, iSus
+initc7 1, 16, iRelMidi / 2.5
+initc7 1, 17, iOsc1TypeMidi / 4
 
 endin
 
@@ -40,12 +47,12 @@ iDec = iDec + 0.0005
 
 iSus ctrl7  1, 15, 0.0, 1
 
-iRel ctrl7  1, 16, 0.0, 2.5
-iRel pow iRel, 3
+iRelMidi ctrl7  1, 16, 0.0, 2.5
+iRel pow iRelMidi, 3
 iRel = iRel + 0.0005
 
-iOsc1Type ctrl7  1, 17, 0, 4
-iOsc1Type int iOsc1Type
+iOsc1TypeMidi ctrl7  1, 17, 0, 4
+iOsc1Type round iOsc1TypeMidi
 
 kPw ctrl7  1, 56, 0.0, 1.0
 kPw scale kPw, 0.01, 0.5
@@ -80,6 +87,9 @@ iSave ctrl7  1, 106, 0, 1
 if iSave == 1 then
     tablew iAttMidi, 0, 2
     tablew iDecMidi, 1, 2
+    tablew iSus, 2, 2
+    tablew iRelMidi, 3, 2
+    tablew iOsc1TypeMidi, 4, 2
     ftsave "patch.txt", 1, 2
     print iSave
 endif
