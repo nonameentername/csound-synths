@@ -16,7 +16,10 @@ Sname, iindex, imin, imax xin
 iMidiIndex      table iindex, 3
 if giInitMidi == 0 then
 iMidiValue      table iindex, 2
-                initc7 1, iMidiIndex, (iMidiValue - imin) / (imax - imin)
+iValue          = (iMidiValue - imin) / (imax - imin)
+iValue          max iValue, 0.0
+iValue          min iValue, 1.0
+                initc7 1, iMidiIndex, iValue
                 chnset iMidiValue, Sname
 endif
 kMidiValue      ctrl7 1, iMidiIndex, imin, imax
@@ -54,6 +57,7 @@ ReadMidiCC "filter_release", 8, 0, 2.5
 ReadMidiCC "filter_reson", 9, 0, 0.97
 ReadMidiCC "filter_env_amt", 10, -16, 16
 ReadMidiCC "filter_cutoff", 11, -0.5, 1.5
+ReadMidiCC "filter_type", 35, 0, 4.0
 ReadMidiCC "filter_key_track", 38, 0, 1
 
 giInitMidi = 1
@@ -64,11 +68,8 @@ iMiddle = sr / 2 * 0.99
 iFreq = p4
 iAmp = p5
 iVelocity veloc 0, 1
-iCutoff = 12
 
-iDb db 12
 i16 = 1 / 16
-kRes = 0
 
 ;OCS 1
 iAttMidi chnget "osc_attack"
@@ -128,9 +129,11 @@ kFEnvAmt = kFEnvAmtMidi
 kFCutoffMidi chnget "filter_cutoff"
 kFCutoff pow 16, kFCutoffMidi
 
+kFTypeMidi chnget "filter_type"
+kFType round kFTypeMidi
+
 kFKeyTrackMidi chnget "filter_key_track"
 kFKeyTrack = kFKeyTrackMidi 
-
 
 if iOsc1Type == 0 then
     ;sine wave
@@ -167,14 +170,32 @@ endif
 kFCutoff min kFCutoff, iMiddle
 kFCutoff max kFCutoff, 10
 
-aVco lowpass2 aVco * kEnv, kFCutoff, kFRes
+if kFType == 0 then
+    ;lowpass
+    aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 0
+elseif kFType == 1 then
+    ;highpass
+    aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 2
+elseif kFType == 2 then
+    ;bandpass
+    aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 4
+elseif kFType == 3 then
+    ;band-reject
+    aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 6
+else
+    ;peaking eq
+    aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 8
+endif
 
-print iOsc1Type, iAtt, iDec, iSus, iRel
-print iFAtt, iFDec, iFSus, iFRel, iVelocity
-printk 1, kFResMidi, 0, 1
-printk 1, kFEnvAmt, 0, 1
-printk 1, kFCutoffMidi, 0, 1
-printk 1, kFKeyTrack, 0, 1
+;print iOsc1Type, iAtt, iDec, iSus, iRel
+;print iFAtt, iFDec, iFSus, iFRel, iVelocity
+;printk 1, kFRes , 0, 1
+;printk 1, kFType, 0, 1
+;printk 1, kFTypeMidi, 0, 1
+;printk 1, kFResMidi, 0, 1
+;printk 1, kFEnvAmt, 0, 1
+;printk 1, kFCutoffMidi, 0, 1
+;printk 1, kFKeyTrack, 0, 1
 
 ;outs aVco, aVco
 
@@ -198,6 +219,7 @@ if iSave == 1 then
     tablew kFResMidi, 9, 2
     tablew kFEnvAmtMidi, 10, 2
     tablew kFCutoffMidi, 11, 2
+    tablew kFTypeMidi, 35, 2
     tablew kFKeyTrackMidi, 38, 2
     ftsave "patch.txt", 1, 2
     print iSave
@@ -212,7 +234,7 @@ iloknee ctrl7 1, 50, -100, 100
 ihiknee ctrl7 1, 51, -100, 100
 iratio ctrl7 1, 52, 1.0, 100
 
-print ithresh, iloknee, ihiknee, iratio
+;print ithresh, iloknee, ihiknee, iratio
 
 ithresh = -100
 iloknee = -100
