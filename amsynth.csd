@@ -46,8 +46,18 @@ ReadMidiCC "osc_attack", 0, 0, 2.5
 ReadMidiCC "osc_decay", 1, 0, 2.5
 ReadMidiCC "osc_sustain", 2, 0, 1.0
 ReadMidiCC "osc_release", 3, 0, 2.5
-ReadMidiCC "osc_waveform", 4, 0, 4.0
-ReadMidiCC "osc_shape", 24, 0, 1.0
+ReadMidiCC "osc1_waveform", 4, 0, 4.0
+ReadMidiCC "osc1_shape", 24, 0, 1.0
+
+;OSC 2
+ReadMidiCC "osc2_waveform", 13, 0, 4.0
+ReadMidiCC "osc2_shape", 25, 0, 1.0
+ReadMidiCC "osc2_octave", 18, -3, 4
+ReadMidiCC "osc2_semitone", 34, -12, 12
+ReadMidiCC "osc2_detune", 12, -1, 1
+
+ReadMidiCC "osc_mix", 19, -1, 1
+ReadMidiCC "osc_ring_mod", 23, 0, 1
 
 ;Filter
 ReadMidiCC "filter_attack", 5, 0, 2.5
@@ -97,11 +107,42 @@ if iRel < 0.05 then
     iRel = 0.05
 endif
 
-iOsc1TypeMidi chnget "osc_waveform"
+iOsc1TypeMidi chnget "osc1_waveform"
 iOsc1Type round iOsc1TypeMidi
 
-kShapeMidi chnget "osc_shape"
-kShape scale kShapeMidi, 0.01, 0.5
+kOsc1ShapeMidi chnget "osc1_shape"
+kOsc1Shape scale kOsc1ShapeMidi, 0.01, 0.5
+
+;OSC 2
+iOsc2TypeMidi chnget "osc2_waveform"
+iOsc2Type round iOsc2TypeMidi
+
+kOsc2ShapeMidi chnget "osc2_shape"
+kOsc2Shape scale kOsc2ShapeMidi, 0.02, 0.5
+
+kOsc2OctaveMidi chnget "osc2_octave"
+kOsc2Octave round kOsc2OctaveMidi
+kOsc2Octave octave kOsc2Octave
+
+kOsc2SemitoneMidi chnget "osc2_semitone"
+kOsc2Semitone round kOsc2SemitoneMidi
+kOsc2Semitone semitone kOsc2Semitone
+
+kOsc2DetuneMidi chnget "osc2_detune"
+kOsc2Detune pow 1.25, kOsc2DetuneMidi
+
+;Mix
+kOscMixMidi chnget "osc_mix"
+kOscMix = kOscMixMidi
+
+kOscRingModMidi chnget "osc_ring_mod"
+kOscRingMod = kOscRingModMidi
+
+kOsc1Vol = (1 - kOscMix) / 2
+kOsc1Vol = kOsc1Vol * (1 - kOscRingMod)
+
+kOsc2Vol = (1 + kOscMix) / 2
+kOsc2Vol = kOsc2Vol * (1 - kOscRingMod)
 
 ;Filter
 iFAttMidi chnget "filter_attack"
@@ -137,20 +178,39 @@ kFKeyTrack = kFKeyTrackMidi
 
 if iOsc1Type == 0 then
     ;sine wave
-    aVco oscil iAmp, iFreq, 1
+    aOsc1 oscil iAmp, iFreq, 1
 elseif iOsc1Type == 1 then
     ;square / pulse
-    aVco vco2 iAmp, iFreq, 2, kShape
+    aOsc1 vco2 iAmp, iFreq, 2, kOsc1Shape
 elseif iOsc1Type == 2 then
     ;triangle / saw
-    aVco vco2 iAmp, iFreq, 4, kShape
+    aOsc1 vco2 iAmp, iFreq, 4, kOsc1Shape
 elseif iOsc1Type == 3 then
     ;white noise
-    aVco noise iAmp, 0.5
+    aOsc1 noise iAmp, 0.5
 else
     ;noise + sample & hold
-    aVco randh iAmp, iFreq
+    aOsc1 randh iAmp, iFreq
 endif
+
+if iOsc2Type == 0 then
+    ;sine wave
+    aOsc2 oscil iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 1
+elseif iOsc2Type == 1 then
+    ;square / pulse
+    aOsc2 vco2 iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 2, kOsc2Shape
+elseif iOsc2Type == 2 then
+    ;triangle / saw
+    aOsc2 vco2 iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 4, kOsc2Shape
+elseif iOsc2Type == 3 then
+    ;white noise
+    aOsc2 noise iAmp, 0.5
+else
+    ;noise + sample & hold
+    aOsc2 randh iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune
+endif
+
+aVco = aOsc1 * kOsc1Vol + aOsc2 * kOsc2Vol + kOscRingMod * aOsc1 * aOsc2
 
 kEnv linsegr 0,iAtt,1,iDec,iSus,iRel,0
 
@@ -187,18 +247,6 @@ else
     aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 8
 endif
 
-;print iOsc1Type, iAtt, iDec, iSus, iRel
-;print iFAtt, iFDec, iFSus, iFRel, iVelocity
-;printk 1, kFRes , 0, 1
-;printk 1, kFType, 0, 1
-;printk 1, kFTypeMidi, 0, 1
-;printk 1, kFResMidi, 0, 1
-;printk 1, kFEnvAmt, 0, 1
-;printk 1, kFCutoffMidi, 0, 1
-;printk 1, kFKeyTrack, 0, 1
-
-;outs aVco, aVco
-
 gaSend = gaSend + aVco
 
 ;save the patch
@@ -210,7 +258,15 @@ if iSave == 1 then
     tablew iSusMidi, 2, 2
     tablew iRelMidi, 3, 2
     tablew iOsc1TypeMidi, 4, 2
-    tablew kShape, 24, 2
+    tablew kOsc1ShapeMidi, 24, 2
+    ;OCS 2
+    tablew iOsc2TypeMidi, 13, 2
+    tablew kOsc2ShapeMidi, 25, 2
+    tablew kOsc2OctaveMidi, 18, 2
+    tablew kOsc2SemitoneMidi, 34, 2
+    tablew kOsc2DetuneMidi, 12, 2
+    tablew kOscMixMidi, 19, 2
+    tablew kOscRingModMidi, 23, 2
     ;Filter
     tablew iFAttMidi, 5, 2
     tablew iFDecMidi, 6, 2
