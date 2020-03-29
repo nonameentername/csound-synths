@@ -10,6 +10,8 @@ nchnls = 2
 0dbfs = 1
 
 giInitMidi   = 0
+giPreviousFreq = 0
+gkInstrCount = 0
 
                 opcode ReadMidiCC, 0, Siii
 Sname, iindex, imin, imax xin
@@ -58,6 +60,10 @@ ReadMidiCC "osc2_detune", 12, -1, 1
 
 ReadMidiCC "osc_mix", 19, -1, 1
 ReadMidiCC "osc_ring_mod", 23, 0, 1
+
+
+ReadMidiCC "osc_portamento_time", 32, 0, 1
+ReadMidiCC "osc_portamento_mode", 41, 0, 1
 
 ;Filter
 ReadMidiCC "filter_attack", 5, 0, 2.5
@@ -176,38 +182,52 @@ kFType round kFTypeMidi
 kFKeyTrackMidi chnget "filter_key_track"
 kFKeyTrack = kFKeyTrackMidi 
 
+iPortamentoTimeMidi chnget "osc_portamento_time"
+kPortamentoTime = iPortamentoTimeMidi
+
+iPortamentoModeMidi chnget "osc_portamento_mode"
+kPortamentoMode round iPortamentoModeMidi
+
+gkInstrCount active 1, 0, 1
+
+if gkInstrCount <= 1 && kPortamentoMode == 1 then
+    kFreq = iFreq
+else
+    kFreq portk iFreq, kPortamentoTime / 4, giPreviousFreq
+endif
+
 if iOsc1Type == 0 then
     ;sine wave
-    aOsc1 oscil iAmp, iFreq, 1
+    aOsc1 oscil iAmp, kFreq, 1
 elseif iOsc1Type == 1 then
     ;square / pulse
-    aOsc1 vco2 iAmp, iFreq, 2, kOsc1Shape
+    aOsc1 vco2 iAmp, kFreq, 2, kOsc1Shape
 elseif iOsc1Type == 2 then
     ;triangle / saw
-    aOsc1 vco2 iAmp, iFreq, 4, kOsc1Shape
+    aOsc1 vco2 iAmp, kFreq, 4, kOsc1Shape
 elseif iOsc1Type == 3 then
     ;white noise
     aOsc1 noise iAmp, 0.5
 else
     ;noise + sample & hold
-    aOsc1 randh iAmp, iFreq
+    aOsc1 randh iAmp, kFreq
 endif
 
 if iOsc2Type == 0 then
     ;sine wave
-    aOsc2 oscil iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 1
+    aOsc2 oscil iAmp, kFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 1
 elseif iOsc2Type == 1 then
     ;square / pulse
-    aOsc2 vco2 iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 2, kOsc2Shape
+    aOsc2 vco2 iAmp, kFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 2, kOsc2Shape
 elseif iOsc2Type == 2 then
     ;triangle / saw
-    aOsc2 vco2 iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 4, kOsc2Shape
+    aOsc2 vco2 iAmp, kFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune, 4, kOsc2Shape
 elseif iOsc2Type == 3 then
     ;white noise
     aOsc2 noise iAmp, 0.5
 else
     ;noise + sample & hold
-    aOsc2 randh iAmp, iFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune
+    aOsc2 randh iAmp, kFreq * kOsc2Octave * kOsc2Semitone * kOsc2Detune
 endif
 
 aVco = aOsc1 * kOsc1Vol + aOsc2 * kOsc2Vol + kOscRingMod * aOsc1 * aOsc2
@@ -215,14 +235,14 @@ aVco = aOsc1 * kOsc1Vol + aOsc2 * kOsc2Vol + kOscRingMod * aOsc1 * aOsc2
 kEnv linsegr 0,iAtt,1,iDec,iSus,iRel,0
 
 ;key track
-kCutoffBase = iTrackBaseFreq * (1 - kFKeyTrack) + iFreq * kFKeyTrack
+kCutoffBase = iTrackBaseFreq * (1 - kFKeyTrack) + kFreq * kFKeyTrack
 
 kFCutoff = kFCutoff * kCutoffBase * iVelocity
 
 kFEnv linsegr 0,iFAtt,1,iFDec,iFSus,iFRel,0
 
 if kFEnvAmt > 0 then
-    kFCutoff = kFCutoff + iFreq * kFEnv * kFEnvAmt
+    kFCutoff = kFCutoff + kFreq * kFEnv * kFEnvAmt
 else
     kFCutoff = kFCutoff + kFCutoff * i16 * kFEnvAmt * kFEnv
 endif
@@ -275,11 +295,15 @@ if iSave == 1 then
     tablew kFResMidi, 9, 2
     tablew kFEnvAmtMidi, 10, 2
     tablew kFCutoffMidi, 11, 2
+    tablew iPortamentoTimeMidi, 32, 2
+    tablew iPortamentoModeMidi, 41, 2
     tablew kFTypeMidi, 35, 2
     tablew kFKeyTrackMidi, 38, 2
     ftsave "patch.txt", 1, 2
     print iSave
 endif
+
+giPreviousFreq init iFreq
 
 endin
 
