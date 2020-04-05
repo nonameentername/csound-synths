@@ -37,7 +37,8 @@ ftload "midi.txt", 1, 3
 giEmpty ftgen 2, 0, -100, 2, 0
 ftload "patch.txt", 1, 2
 
-gaSend init 0
+gaSendL init 0
+gaSendR init 0
 
 endin
 
@@ -85,6 +86,12 @@ ReadMidiCC "lfo_to_osc", 37, 0, 2.0
 ReadMidiCC "lfo_freq_amount", 20, 0, 1.25992105
 ReadMidiCC "lfo_filter_amount", 21, -1, 1
 ReadMidiCC "lfo_amp_amount", 22, -1, 1
+
+;Reverb
+ReadMidiCC "reverb_amount", 28, 0, 1
+ReadMidiCC "reverb_size", 26, 0, 1
+ReadMidiCC "reverb_width", 29, 0, 1
+ReadMidiCC "reverb_damp", 27, 0, 1
 
 giInitMidi = 1
 
@@ -182,6 +189,19 @@ kOsc1Vol = kOsc1Vol * (1 - kOscRingMod)
 
 kOsc2Vol = (1 + kOscMix) / 2
 kOsc2Vol = kOsc2Vol * (1 - kOscRingMod)
+
+;Reverb
+kReverbAmountMidi chnget "reverb_amount"
+kReverbAmount = kReverbAmountMidi 
+
+kReverbSizeMidi chnget "reverb_size"
+kReverbSize = kReverbSizeMidi 
+
+kReverbWidthMidi chnget "reverb_width"
+kReverbWidth = kReverbWidthMidi 
+
+kReverbDampMidi chnget "reverb_damp"
+kReverbDamp  = kReverbDampMidi
 
 ;Filter
 iFAttMidi chnget "filter_attack"
@@ -343,7 +363,8 @@ else
     aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 8
 endif
 
-gaSend = gaSend + aVco
+gaSendL = gaSendL + aVco
+gaSendR = gaSendR + aVco
 
 ;save the patch
 iSave ctrl7  1, 106, 0, 1
@@ -370,6 +391,11 @@ if iSave == 1 then
     tablew kLfoFreqAmountMidi, 20, 2
     tablew kLfoFilterAmountMidi, 21, 2
     tablew kLfoAmpMidi, 22, 2
+    ;Reverb
+    tablew kReverbAmountMidi, 28, 2
+    tablew kReverbSizeMidi, 26, 2
+    tablew kReverbWidthMidi, 29, 2
+    tablew kReverbDampMidi, 27, 2
     ;Filter
     tablew iFAttMidi, 5, 2
     tablew iFDecMidi, 6, 2
@@ -392,12 +418,23 @@ endin
 
 instr 99
 
+;Reverb
+kReverbAmountMidi chnget "reverb_amount"
+kReverbAmount = kReverbAmountMidi 
+
+kReverbSizeMidi chnget "reverb_size"
+kReverbSize = kReverbSizeMidi 
+
+kReverbWidthMidi chnget "reverb_width"
+kReverbWidth = kReverbWidthMidi 
+
+kReverbDampMidi chnget "reverb_damp"
+kReverbDamp  = kReverbDampMidi
+
 ithresh ctrl7 1, 49, -100, 100
 iloknee ctrl7 1, 50, -100, 100
 ihiknee ctrl7 1, 51, -100, 100
 iratio ctrl7 1, 52, 1.0, 100
-
-;print ithresh, iloknee, ihiknee, iratio
 
 ithresh = -100
 iloknee = -100
@@ -407,10 +444,21 @@ iatt = 0
 irel = 0 
 ilook = 0 
 ablank init 1
-gaSend compress2 gaSend, ablank, ithresh, iloknee, ihiknee, iratio, iatt, irel, ilook 
 
-outs gaSend, gaSend
-clear gaSend
+aReverbL, aReverbR freeverb gaSendL, gaSendR, kReverbSize, kReverbDamp
+
+kWet1 = kReverbAmount * ( kReverbWidth / 2 + 0.5 )
+kWet2 = kReverbAmount * ( ( 1 - kReverbWidth ) / 2 )
+kDry = 1 - kReverbAmount
+
+aLeft = aReverbL * kWet1 + aReverbR * kWet2 + gaSendL * kDry
+aRight = aReverbR * kWet1 + aReverbL * kWet2 + gaSendR * kDry
+
+aCompressL compress2 aLeft, ablank, ithresh, iloknee, ihiknee, iratio, iatt, irel, ilook 
+aCompressR compress2 aRight, ablank, ithresh, iloknee, ihiknee, iratio, iatt, irel, ilook 
+
+outs aCompressL, aCompressR
+clear gaSendL, gaSendR
 
 endin
 
