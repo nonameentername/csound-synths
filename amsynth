@@ -1,3 +1,33 @@
 #!/bin/bash
 
-csound -+rtmidi=jack -+rtaudio=jack -b 512 -i adc -o dac amsynth.csd
+set -m
+
+./amsynth_watch &
+AMSYNTH_WATCH_PID=$!
+
+csound -+rtmidi=jack -+rtaudio=jack -b 512 -i adc -o dac --port=1234 amsynth.csd &
+
+sleep 1
+
+piano_midi=$(jack_lsp | grep "Keystation.*capture.*1")
+launchpad_midi=$(jack_lsp | grep "Launchpad.*capture")
+launchcontrol_midi=$(jack_lsp | grep "Launch Control.*capture.*1")
+
+jack_connect "$piano_midi" csound6-midi_in:port
+jack_connect "$launchpad_midi" csound6-midi_in:port
+jack_connect "$launchcontrol_midi" csound6-midi_in:port
+
+jack_disconnect csound6:output1 system:playback_1
+jack_disconnect csound6:output2 system:playback_2
+
+jack_connect csound6:output1 "Crossfade:Input B left"
+jack_connect csound6:output2 "Crossfade:Input B right"
+
+jack_disconnect amsynth:Left "Stereo Amplifier:Input (Left)"
+jack_disconnect amsynth:Right "Stereo Amplifier:Input (Right)"
+
+./amsynth_midi | nc -w 1 -u 127.0.0.1 1234
+
+fg
+
+kill $AMSYNTH_WATCH_PID

@@ -1,0 +1,507 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE CARLA-PROJECT>
+<CARLA-PROJECT VERSION='2.0'>
+ <EngineSettings>
+  <ForceStereo>false</ForceStereo>
+  <PreferPluginBridges>false</PreferPluginBridges>
+  <PreferUiBridges>true</PreferUiBridges>
+  <UIsAlwaysOnTop>false</UIsAlwaysOnTop>
+  <MaxParameters>200</MaxParameters>
+  <UIBridgesTimeout>4000</UIBridgesTimeout>
+ </EngineSettings>
+
+ <Transport>
+  <BeatsPerMinute>120</BeatsPerMinute>
+ </Transport>
+
+ <!-- amsynth -->
+ <Plugin>
+  <Info>
+   <Type>LV2</Type>
+   <Name>amsynth</Name>
+   <URI>http://code.google.com/p/amsynth/amsynth</URI>
+  </Info>
+
+  <Data>
+   <Active>Yes</Active>
+   <ControlChannel>1</ControlChannel>
+   <Options>0x1e0</Options>
+
+   <Parameter>
+    <Index>0</Index>
+    <Name>Amp Attack</Name>
+    <Symbol>amp_attack</Symbol>
+    <MidiCC>13</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.0333329997956753</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>1</Index>
+    <Name>Amp Decay</Name>
+    <Symbol>amp_decay</Symbol>
+    <MidiCC>14</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>1.70000994205475</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>2</Index>
+    <Name>Amp Sustain</Name>
+    <Symbol>amp_sustain</Symbol>
+    <MidiCC>15</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>3</Index>
+    <Name>Amp Release</Name>
+    <Symbol>amp_release</Symbol>
+    <MidiCC>16</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.648586988449097</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>4</Index>
+    <Name>Osc1 Waveform</Name>
+    <Symbol>osc1_waveform</Symbol>
+    <MidiCC>17</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>2</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>5</Index>
+    <Name>Filter Attack</Name>
+    <Symbol>filter_attack</Symbol>
+    <MidiCC>29</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.0916669964790344</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>6</Index>
+    <Name>Filter Decay</Name>
+    <Symbol>filter_decay</Symbol>
+    <MidiCC>30</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.649999976158142</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>7</Index>
+    <Name>Filter Sustain</Name>
+    <Symbol>filter_sustain</Symbol>
+    <MidiCC>31</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.786666989326477</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>8</Index>
+    <Name>Filter Release</Name>
+    <Symbol>filter_release</Symbol>
+    <MidiCC>32</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>1.22500002384186</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>9</Index>
+    <Name>Filter Resonance</Name>
+    <Symbol>filter_resonance</Symbol>
+    <MidiCC>33</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.712141990661621</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>10</Index>
+    <Name>Filter Env Amount</Name>
+    <Symbol>filter_env_amount</Symbol>
+    <MidiCC>36</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>11.8400001525879</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>11</Index>
+    <Name>Filter Cutoff</Name>
+    <Symbol>filter_cutoff</Symbol>
+    <MidiCC>34</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>-0.279527992010117</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>12</Index>
+    <Name>Osc2 Detune</Name>
+    <Symbol>osc2_detune</Symbol>
+    <MidiCC>53</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.0333329997956753</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>13</Index>
+    <Name>Osc2 Waveform</Name>
+    <Symbol>osc2_waveform</Symbol>
+    <MidiCC>49</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>14</Index>
+    <Name>Master Vol</Name>
+    <Symbol>master_vol</Symbol>
+    <MidiCC>20</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.72530198097229</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>15</Index>
+    <Name>LFO Freq</Name>
+    <Symbol>lfo_freq</Symbol>
+    <MidiCC>79</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>7.5</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>16</Index>
+    <Name>LFO Waveform</Name>
+    <Symbol>lfo_waveform</Symbol>
+    <MidiCC>78</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>17</Index>
+    <Name>Osc2 Range</Name>
+    <Symbol>osc2_range</Symbol>
+    <MidiCC>51</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>18</Index>
+    <Name>Osc Mix</Name>
+    <Symbol>osc_mix</Symbol>
+    <MidiCC>55</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>-0.098302997648716</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>19</Index>
+    <Name>Freq Mod Amount</Name>
+    <Symbol>freq_mod_amount</Symbol>
+    <MidiCC>81</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>20</Index>
+    <Name>Filter Mod Amount</Name>
+    <Symbol>filter_mod_amount</Symbol>
+    <MidiCC>82</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>-0.446666985750198</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>21</Index>
+    <Name>Amp Mod Amount</Name>
+    <Symbol>amp_mod_amount</Symbol>
+    <MidiCC>83</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>-1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>22</Index>
+    <Name>Ring Mod</Name>
+    <Symbol>osc_mix_mode</Symbol>
+    <MidiCC>56</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>23</Index>
+    <Name>Osc1 Pulsewidth</Name>
+    <Symbol>osc1_pulsewidth</Symbol>
+    <MidiCC>18</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.983332991600037</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>24</Index>
+    <Name>Osc2 Pulsewidth</Name>
+    <Symbol>osc2_pulsewidth</Symbol>
+    <MidiCC>50</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0.146667003631592</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>25</Index>
+    <Name>Reverb Roomsize</Name>
+    <Symbol>reverb_roomsize</Symbol>
+    <MidiCC>78</MidiCC>
+    <MidiChannel>2</MidiChannel>
+    <Value>0.74666702747345</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>26</Index>
+    <Name>Reverb Damp</Name>
+    <Symbol>reverb_damp</Symbol>
+    <MidiCC>80</MidiCC>
+    <MidiChannel>2</MidiChannel>
+    <Value>0.879999995231628</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>27</Index>
+    <Name>Reverb Wet</Name>
+    <Symbol>reverb_wet</Symbol>
+    <MidiCC>77</MidiCC>
+    <MidiChannel>2</MidiChannel>
+    <Value>0.333332985639572</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>28</Index>
+    <Name>Reverb Width</Name>
+    <Symbol>reverb_width</Symbol>
+    <MidiCC>79</MidiCC>
+    <MidiChannel>2</MidiChannel>
+    <Value>1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>29</Index>
+    <Name>Distortion Crunch</Name>
+    <Symbol>distortion_crunch</Symbol>
+    <MidiCC>20</MidiCC>
+    <MidiChannel>2</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>30</Index>
+    <Name>Osc2 Sync</Name>
+    <Symbol>osc2_sync</Symbol>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>31</Index>
+    <Name>Portamento Time</Name>
+    <Symbol>portamento_time</Symbol>
+    <MidiCC>54</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>32</Index>
+    <Name>Keyboard Mode</Name>
+    <Symbol>keyboard_mode</Symbol>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>33</Index>
+    <Name>Osc2 Pitch</Name>
+    <Symbol>osc2_pitch</Symbol>
+    <MidiCC>52</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>34</Index>
+    <Name>Filter Type</Name>
+    <Symbol>filter_type</Symbol>
+    <MidiCC>19</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>35</Index>
+    <Name>Filter Slope</Name>
+    <Symbol>filter_slope</Symbol>
+    <Value>1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>36</Index>
+    <Name>Freq Mod to Oscillator</Name>
+    <Symbol>freq_mod_osc</Symbol>
+    <MidiCC>80</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>37</Index>
+    <Name>Filter Key Track</Name>
+    <Symbol>filter_kbd_track</Symbol>
+    <MidiCC>35</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>38</Index>
+    <Name>Filter Velocity Track</Name>
+    <Symbol>filter_vel_sens</Symbol>
+    <Value>1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>39</Index>
+    <Name>Amp Velocity Amount</Name>
+    <Symbol>amp_vel_sens</Symbol>
+    <Value>1</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>40</Index>
+    <Name>Portamento Mode</Name>
+    <Symbol>portamento_mode</Symbol>
+    <MidiCC>77</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>1</Value>
+   </Parameter>
+
+   <CustomData>
+    <Type>http://kxstudio.sf.net/ns/carla/property</Type>
+    <Key>CarlaSkinIsCompacted</Key>
+    <Value>false</Value>
+   </CustomData>
+  </Data>
+ </Plugin>
+
+ <!-- Crossfade -->
+ <Plugin>
+  <Info>
+   <Type>LADSPA</Type>
+   <Name>Crossfade</Name>
+   <Binary>/usr/lib/ladspa/xfade_1915.so</Binary>
+   <Label>xfade</Label>
+   <UniqueID>1915</UniqueID>
+  </Info>
+
+  <Data>
+   <Active>Yes</Active>
+   <Volume>1.095242</Volume>
+   <ControlChannel>1</ControlChannel>
+   <Options>0x0</Options>
+
+   <Parameter>
+    <Index>0</Index>
+    <Name>Crossfade</Name>
+    <MidiCC>84</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>1</Value>
+   </Parameter>
+
+   <CustomData>
+    <Type>http://kxstudio.sf.net/ns/carla/property</Type>
+    <Key>CarlaSkinIsCompacted</Key>
+    <Value>false</Value>
+   </CustomData>
+  </Data>
+ </Plugin>
+
+ <ExternalPatchbay>
+  <Connection>
+   <Source>system:capture_1</Source>
+   <Target>PulseAudio JACK Source:front-left</Target>
+  </Connection>
+  <Connection>
+   <Source>system:capture_1</Source>
+   <Target>csound6:input1</Target>
+  </Connection>
+  <Connection>
+   <Source>system:capture_2</Source>
+   <Target>PulseAudio JACK Source:front-right</Target>
+  </Connection>
+  <Connection>
+   <Source>system:capture_2</Source>
+   <Target>csound6:input2</Target>
+  </Connection>
+  <Connection>
+   <Source>a2j:Launchpad MK2 [32] (capture): Launchpad MK2 MIDI 1</Source>
+   <Target>csound6-midi_in:port</Target>
+  </Connection>
+  <Connection>
+   <Source>a2j:Launchpad MK2 [32] (capture): Launchpad MK2 MIDI 1</Source>
+   <Target>amsynth:events-in</Target>
+  </Connection>
+  <Connection>
+   <Source>a2j:Launch Control XL [40] (capture): Launch Control XL MIDI 1</Source>
+   <Target>csound6-midi_in:port</Target>
+  </Connection>
+  <Connection>
+   <Source>a2j:Launch Control XL [40] (capture): Launch Control XL MIDI 1</Source>
+   <Target>Crossfade:events-in</Target>
+  </Connection>
+  <Connection>
+   <Source>a2j:Launch Control XL [40] (capture): Launch Control XL MIDI 1</Source>
+   <Target>amsynth:events-in</Target>
+  </Connection>
+  <Connection>
+   <Source>a2j:Keystation 88 [44] (capture): Keystation 88 MIDI 1</Source>
+   <Target>csound6-midi_in:port</Target>
+  </Connection>
+  <Connection>
+   <Source>a2j:Keystation 88 [44] (capture): Keystation 88 MIDI 1</Source>
+   <Target>amsynth:events-in</Target>
+  </Connection>
+  <Connection>
+   <Source>PulseAudio JACK Sink:front-left</Source>
+   <Target>system:playback_1</Target>
+  </Connection>
+  <Connection>
+   <Source>PulseAudio JACK Sink:front-right</Source>
+   <Target>system:playback_2</Target>
+  </Connection>
+  <Connection>
+   <Source>csound6:output1</Source>
+   <Target>Crossfade:Input B left</Target>
+  </Connection>
+  <Connection>
+   <Source>csound6:output2</Source>
+   <Target>Crossfade:Input B right</Target>
+  </Connection>
+  <Connection>
+   <Source>amsynth:Left</Source>
+   <Target>Crossfade:Input A left</Target>
+  </Connection>
+  <Connection>
+   <Source>amsynth:Right</Source>
+   <Target>Crossfade:Input A right</Target>
+  </Connection>
+  <Connection>
+   <Source>Crossfade:Output left</Source>
+   <Target>system:playback_1</Target>
+  </Connection>
+  <Connection>
+   <Source>Crossfade:Output right</Source>
+   <Target>system:playback_2</Target>
+  </Connection>
+ </ExternalPatchbay>
+</CARLA-PROJECT>

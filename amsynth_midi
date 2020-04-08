@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+
+import xml.etree.ElementTree as ElementTree
+
+tree = ElementTree.parse('amsynth.carxp')
+root = tree.getroot()
+
+midi_values = []
+
+for parameter in root.findall("Plugin/Info[Name='amsynth']/../Data/Parameter"):
+    midi_value = {}
+    for attribute in parameter:
+        midi_value[attribute.tag.lower()] = attribute.text
+    midi_values.append(midi_value)
+
+midi_range = {
+    "amp_attack": [ 0, 2.5 ],
+    "amp_decay": [ 0, 2.5 ],
+    "amp_sustain": [ 0, 1.0 ],
+    "amp_release": [ 0, 2.5 ],
+    "osc1_waveform": [ 0, 4.0 ],
+    "osc1_pulsewidth": [ 0, 1.0 ],
+    "osc2_waveform": [ 0, 4.0 ],
+    "osc2_pulsewidth": [ 0, 1.0 ],
+    "osc2_range": [ -3, 4 ],
+    "osc2_pitch": [ -12, 12 ],
+    "osc2_detune": [ -1, 1 ],
+    "osc_mix": [ -1, 1 ],
+    "osc_mix_mode": [ 0, 1 ],
+    "portamento_time": [ 0, 1 ],
+    "portamento_mode": [ 0, 1 ],
+    "filter_attack": [ 0, 2.5 ],
+    "filter_decay": [ 0, 2.5 ],
+    "filter_sustain": [ 0, 1.0 ],
+    "filter_release": [ 0, 2.5 ],
+    "filter_resonance": [ 0, 0.97 ],
+    "filter_env_amount": [ -16, 16 ],
+    "filter_cutoff": [ -0.5, 1.5 ],
+    "filter_type": [ 0, 4.0 ],
+    "filter_kbd_track": [ 0, 1 ],
+    "lfo_waveform": [ 0, 6.0 ],
+    "lfo_freq": [ 0, 7.5 ],
+    "freq_mod_osc": [ 0, 2.0 ],
+    "freq_mod_amount": [ 0, 1.25992105 ],
+    "filter_mod_amount": [ -1, 1 ],
+    "amp_mod_amount": [ -1, 1 ],
+    "reverb_wet": [ 0, 1 ],
+    "reverb_roomsize": [ 0, 1 ],
+    "reverb_width": [ 0, 1 ],
+    "reverb_damp": [ 0, 1 ],
+    "distortion_crunch": [0, 0.9],
+    "master_vol": [ 0, 1 ]
+}
+
+print ('''
+giInitMidi   = 0
+                opcode ReadMidiCC, 0, Siiiii
+Sname, imin, imax, ichannel, iindex, ivalue xin
+if giInitMidi == 0 then
+iValue          = (ivalue - imin) / (imax - imin)
+iValue          max iValue, 0.0
+iValue          min iValue, 1.0
+                initc7 ichannel, iindex, iValue
+                chnset ivalue, Sname
+endif
+kMidiValue      ctrl7 ichannel, iindex, imin, imax
+                chnset kMidiValue, Sname
+                endop
+instr 2
+''')
+
+for midi_value in midi_values:
+    name = midi_value['symbol']
+    midi_channel = midi_value.get('midichannel', 0)
+    midi_cc = midi_value.get('midicc', 127)
+    value = midi_value['value']
+
+    if name in midi_range:
+        midi_min, midi_max = midi_range[name]        
+        print (f'ReadMidiCC "{name}", {midi_min}, {midi_max}, {midi_channel}, {midi_cc}, {value}')
+
+print ('''
+giInitMidi = 1
+endin
+schedule 2, 0, -1
+''')

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+while inotifywait -q -e close_write amsynth.carxp || true; do
+    ./amsynth_midi | nc -w 1 -u 127.0.0.1 1234
+done
