@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
 import xml.etree.ElementTree as ElementTree
+import sys
+
+include_read_midi_cc = False
+
+if len(sys.argv) > 1:
+    include_read_midi_cc = True
 
 tree = ElementTree.parse('amsynth.carxp')
 root = tree.getroot()
@@ -49,10 +55,12 @@ midi_range = {
     "reverb_width": [ 0, 1 ],
     "reverb_damp": [ 0, 1 ],
     "distortion_crunch": [0, 0.9],
+    "keyboard_mode": [0, 2],
     "master_vol": [ 0, 1 ]
 }
 
-print ('''
+if include_read_midi_cc:
+    print ('''
 giInitMidi   = 0
                 opcode ReadMidiCC, 0, Siiiii
 Sname, imin, imax, ichannel, iindex, ivalue xin
@@ -66,6 +74,11 @@ endif
 kMidiValue      ctrl7 ichannel, iindex, imin, imax
                 chnset kMidiValue, Sname
                 endop
+    ''')
+
+print ('''
+giInitMidi   = 0
+
 instr 2
 ''')
 

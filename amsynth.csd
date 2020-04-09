@@ -9,10 +9,81 @@ ksmps = 128
 nchnls = 2
 0dbfs = 1
 
-giPreviousFreq = 0
+gknum init 0
+gkPreviousFreq = 0
+giPrevInstrFreq = 0
 gkInstrCount = 0
 gaSendL init 0
 gaSendR init 0
+
+massign 0, 0
+massign 1, 1
+
+instr 11
+
+kKeyboardModeMidi chnget "keyboard_mode"
+kKeyboardMode round kKeyboardModeMidi
+
+iInstr = 1
+gknotes	init	0
+kkeys[]  init   128
+kcounter init   1
+kstatus, kchan, kb1, kb2	midiin
+kFreq mtof kb1
+kAmp = kb2 / 127
+
+if kstatus == 144 && kb2 != 0 then
+    if gknotes == 0 then
+        kcounter = 1
+        if kKeyboardMode != 0 then
+            turnoff2 iInstr, 0, 1
+            schedkwhen	1, 0, 0, iInstr, 0, -1, kFreq, kAmp, gkPreviousFreq
+        endif
+    else
+        kcounter = kcounter + 1
+    endif
+    gknum	=	kb1
+    gknotes	=	gknotes + 1
+    gknoteon = 1
+    kkeys[gknum] = kcounter
+    gkPreviousFreq = kFreq
+elseif kstatus == 144 && kb2 == 0 || kstatus == 128 then
+    kkeys[kb1] = 0
+    if gknotes == 1 then
+        gknum = kb1
+        if kKeyboardMode != 0 then
+            schedkwhen	1, 0, 0, -iInstr, 0, 0, kFreq, kAmp, -1
+        endif
+        kcounter = 0
+    else
+        klargest = 0
+        kindex = 0
+        until kindex == 128 do
+            if kkeys[kindex] > kkeys[klargest] then
+                klargest = kindex
+            endif
+            kindex = kindex + 1
+        od
+        if kkeys[klargest] > 0 then
+            gknum	=	klargest
+        endif
+        if kKeyboardMode == 1 then
+            schedkwhen	1, 0, 0, -iInstr, 0, 0, kFreq, kAmp, -1
+            schedkwhen	1, 0, 0, iInstr, 0, -1, kFreq, kAmp, -1
+        endif
+
+    endif
+    if gknotes > 0 then
+        gknotes = gknotes - 1
+        gknoteon = 0
+    endif
+    if gknotes == 0 then
+        turnoff2 iInstr, 0, 1
+    endif
+    gkPreviousFreq = kFreq
+endif
+
+endin
 
 instr 1
 
@@ -21,9 +92,13 @@ iMiddle = sr / 2 * 0.99
 
 iFreq = p4
 iAmp = p5
+iPreviousFreq = p6
 iVelocity veloc 0, 1
 
 i16 = 1 / 16
+
+kKeyboardModeMidi chnget "keyboard_mode"
+kKeyboardMode round kKeyboardModeMidi
 
 kMasterVolMidi chnget "master_vol"
 kMasterVol = kMasterVolMidi
@@ -165,12 +240,26 @@ kPortamentoTime = iPortamentoTimeMidi
 iPortamentoModeMidi chnget "portamento_mode"
 kPortamentoMode round iPortamentoModeMidi
 
+kPrevInstrcount = gkInstrCount
 gkInstrCount active 1, 0, 1
 
-if gkInstrCount <= 1 && kPortamentoMode == 1 then
-    kFreq = iFreq
+if iPreviousFreq >= 0 then
+    giPrevInstrFreq = iPreviousFreq
+endif
+
+if kKeyboardMode == 0 then
+    if gkInstrCount <= 1 && kPortamentoMode == 1 then
+        kPortamentoTime = 0
+    endif
+
+    kFreq portk iFreq, 0.2 * kPortamentoTime, giPrevInstrFreq
 else
-    kFreq portk iFreq, kPortamentoTime / 4, giPreviousFreq
+    if gkInstrCount <= 1 && gknoteon == 1 && kPortamentoMode == 1 then
+        kPortamentoTime = 0
+    endif
+
+    kFreq = cpsoct((gknum / 12) + 3)
+    kFreq portk kFreq, 0.2 * kPortamentoTime, giPrevInstrFreq
 endif
 
 if kLfoType == 0 then
@@ -287,12 +376,13 @@ else
     aVco rbjeq aVco * kEnv, kFCutoff, 1, kFRes, 1, 8
 endif
 
-gaSendL = gaSendL + aVco * kMasterVol
-gaSendR = gaSendR + aVco * kMasterVol
+gaSendL = gaSendL + aVco * kMasterVol * 0.5
+gaSendR = gaSendR + aVco * kMasterVol * 0.5
 
-giPreviousFreq init iFreq
+giPrevInstrFreq = iFreq
 
 endin
+
 
 instr 99
 
@@ -313,27 +403,13 @@ kReverbDamp  = kReverbDampMidi
 kDistMidi chnget "distortion_crunch"
 kDist = kDistMidi 
 
-ithresh = 0
-iloknee = 40
-ihiknee = 60
-iratio  = 3
-iatt    = 0.01
-irel    = 0.5
-ilook   = 0.02
-
-ablank init 1
-
-aCompressL compress gaSendL, ablank, ithresh, iloknee, ihiknee, iratio, iatt, irel, ilook 
-aCompressR compress gaSendR, ablank, ithresh, iloknee, ihiknee, iratio, iatt, irel, ilook 
-
 kCrunch = 1 - kDist
 if kCrunch == 0 then
 	kCrunch = 0.01
 endif
 
-; TODO (nonameentername) add option for gain
-aDistortL powershape aCompressL * 20, kCrunch
-aDistortR powershape aCompressR * 20, kCrunch
+aDistortL powershape gaSendL, kCrunch
+aDistortR powershape gaSendR, kCrunch
 
 aReverbL, aReverbR freeverb aDistortL, aDistortR, kReverbSize, kReverbDamp
 
@@ -341,10 +417,13 @@ kWet1 = kReverbAmount * ( kReverbWidth / 2 + 0.5 )
 kWet2 = kReverbAmount * ( ( 1 - kReverbWidth ) / 2 )
 kDry = 1 - kReverbAmount
 
-aLeft = aReverbL * kWet1 + aReverbR * kWet2 + gaSendL * kDry
-aRight = aReverbR * kWet1 + aReverbL * kWet2 + gaSendR * kDry
+aLeft = aReverbL * kWet1 + aReverbR * kWet2 + aDistortL * kDry
+aRight = aReverbR * kWet1 + aReverbL * kWet2 + aDistortR * kDry
 
-outs aReverbL, aReverbR
+aClipL clip aLeft, 0, 0.9
+aClipR clip aRight, 0, 0.9
+
+outs aClipL, aClipR
 clear gaSendL, gaSendR
 
 endin
@@ -353,6 +432,7 @@ endin
 <CsScore>
 f1 0 16384 10 1
 f0 3600
+i 11 0 3600 0 0
 i 99 0 -1
 </CsScore>
 </CsoundSynthesizer>

@@ -26,7 +26,7 @@ jack_connect csound6:output2 "Crossfade:Input B right"
 jack_disconnect amsynth:Left "Stereo Amplifier:Input (Left)"
 jack_disconnect amsynth:Right "Stereo Amplifier:Input (Right)"
 
-./amsynth_midi | nc -w 1 -u 127.0.0.1 1234
+./amsynth_midi 1 | nc -w 1 -u 127.0.0.1 1234
 
 fg
 

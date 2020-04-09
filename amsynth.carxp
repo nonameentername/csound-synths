@@ -317,6 +317,8 @@
     <Index>32</Index>
     <Name>Keyboard Mode</Name>
     <Symbol>keyboard_mode</Symbol>
+    <MidiCC>56</MidiCC>
+    <MidiChannel>2</MidiChannel>
     <Value>0</Value>
    </Parameter>
 
