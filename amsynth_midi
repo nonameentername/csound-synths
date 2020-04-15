@@ -56,6 +56,7 @@ midi_range = {
     "reverb_damp": [ 0, 1 ],
     "distortion_crunch": [0, 0.9],
     "keyboard_mode": [0, 2],
+    "osc2_sync": [0, 1],
     "master_vol": [ 0, 1 ]
 }
 

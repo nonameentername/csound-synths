@@ -301,6 +301,8 @@
     <Index>30</Index>
     <Name>Osc2 Sync</Name>
     <Symbol>osc2_sync</Symbol>
+    <MidiCC>55</MidiCC>
+    <MidiChannel>2</MidiChannel>
     <Value>0</Value>
    </Parameter>
 
