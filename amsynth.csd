@@ -10,10 +10,9 @@ nchnls = 2
 0dbfs = 1
 
 gkLargest init 0
-gkSmallest init 0
-gkPreviousFreq = 0
+gkPrevNoteFreq = 0
 giPrevInstrFreq = 0
-gkInstrCount = 0
+
 gaSendL init 0
 gaSendR init 0
 
@@ -48,91 +47,97 @@ while iIndex <= 127 do
     iIndex = iIndex + 1
 od
 
+
+opcode GetMax, k, k[]k
+kkeys[], kresult xin
+
+kmax = 0
+kindex = 0
+until kindex == 128 do
+    if kkeys[kindex] > kkeys[kmax] then
+        kmax = kindex
+    endif
+    kindex = kindex + 1
+od
+if kkeys[kmax] > 0 then
+    kresult = kmax
+endif
+
+xout kresult
+endop
+
+
+opcode GetMin, k, k[]k
+kkeys[], kresult xin
+
+kmin = 0
+kindex = 0
+until kindex == 128 do
+    if kkeys[kindex] != 0 && kkeys[kmin] != 0 && kkeys[kindex] < kkeys[kmin] then
+        kmin = kindex
+    elseif kkeys[kmin] == 0 && kkeys[kindex] != 0 then
+        kmin = kindex
+    endif
+    kindex = kindex + 1
+od
+if kkeys[kmin] > 0 then
+    kresult = kmin
+endif
+
+xout kresult
+endop
+
+
 instr 11
 
 kKeyboardModeMidi chnget "keyboard_mode"
 kKeyboardMode round kKeyboardModeMidi
 
 iInstr = 1
-gknotes	init	0
+gknotes init    0
 kkeys[]  init   128
 kcounter init   1
-kstatus, kchan, kb1, kb2	midiin
+kstatus, kchan, kb1, kb2    midiin
 kFreq mtof kb1
 kAmp = kb2 / 127
 
 if kstatus == 144 && kb2 != 0 then
-    if kKeyboardMode == 1 then
-        turnoff2 iInstr, 0, 1
-        schedkwhen	1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPreviousFreq
-    endif
     if gknotes == 0 then
+        if kKeyboardMode != 0 then
+            turnoff2 iInstr, 0, 1
+            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPrevNoteFreq, 1
+        endif
         kcounter = 1
     else
+        if kKeyboardMode == 1 then
+            gkPrevNoteFreq mtof gkLargest
+            turnoff2 iInstr, 0, 1
+            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPrevNoteFreq
+        endif
         kcounter = kcounter + 1
     endif
-    gkLargest	=	kb1
-    gknotes	=	gknotes + 1
+    gkLargest   =   kb1
+    gknotes =   gknotes + 1
     gknoteon = 1
     kkeys[gkLargest] = kcounter
-    gkPreviousFreq = kFreq
-
-    ksmallest = 0
-    kindex = 0
-    until kindex == 128 do
-        if kkeys[kindex] != 0 && kkeys[ksmallest] != 0 && kkeys[kindex] < kkeys[ksmallest] then
-            ksmallest = kindex
-        elseif kkeys[ksmallest] == 0 && kkeys[kindex] != 0 then
-            ksmallest = kindex
-        endif
-        kindex = kindex + 1
-    od
-    if kkeys[ksmallest] > 0 then
-        gkSmallest = ksmallest
-    endif
+    gkPrevNoteFreq = kFreq
 
 elseif kstatus == 144 && kb2 == 0 || kstatus == 128 then
+    gkPrevNoteFreq mtof gkLargest
     kkeys[kb1] = 0
-
-    ksmallest = 0
-    kindex = 0
-    until kindex == 128 do
-        if kkeys[kindex] != 0 && kkeys[ksmallest] != 0 && kkeys[kindex] < kkeys[ksmallest] then
-            ksmallest = kindex
-        elseif kkeys[ksmallest] == 0 && kkeys[kindex] != 0 then
-            ksmallest = kindex
-        endif
-        if kkeys[ksmallest] > 0 then
-            gkSmallest = ksmallest
-        endif
-        kindex = kindex + 1
-    od
 
     if gknotes == 1 then
         gkLargest = kb1
         if kKeyboardMode != 0 then
-            schedkwhen	1, 0, 0, -iInstr, 0, 0, kb1, kb2, gkPreviousFreq
+            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, gkPrevNoteFreq
         endif
         kcounter = 0
     else
-        klargest = 0
-        kindex = 0
-        until kindex == 128 do
-            if kkeys[kindex] > kkeys[klargest] then
-                klargest = kindex
-            endif
-            kindex = kindex + 1
-        od
-        if kkeys[klargest] > 0 then
-            gkPreviousFreq mtof klargest
-            gkLargest = klargest
-        endif
-
+        gkLargest GetMax kkeys, gkLargest
         if kKeyboardMode == 1 then
-            schedkwhen	1, 0, 0, -iInstr, 0, 0, kb1, kb2, gkPreviousFreq
-            schedkwhen	1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPreviousFreq
+            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, gkPrevNoteFreq
+            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPrevNoteFreq
         endif
-
     endif
 
     if gknotes > 0 then
@@ -146,9 +151,11 @@ endif
 
 endin
 
+
 instr 1
 
 mididefault giPrevInstrFreq, p6
+mididefault 0, p7
 
 iInstrCount active 1, 0, 1
 
@@ -160,6 +167,7 @@ ib2 = p5
 iFreq mtof ib1
 iAmp = ib2 / 127
 iPreviousFreq = p6
+iUserForMono = p7
 iVelocity veloc 0, 1
 
 i16 = 1 / 16
@@ -312,14 +320,14 @@ kPortamentoTime = iPortamentoTimeMidi
 iPortamentoModeMidi chnget "portamento_mode"
 kPortamentoMode round iPortamentoModeMidi
 
-gkInstrCount active 1, 0, 1
+kInstrCount active 1, 0, 1
 
 if iPreviousFreq >= 0 then
     giPrevInstrFreq = iPreviousFreq
 endif
 
 if kKeyboardMode == 0 then
-    if gkInstrCount <= 1 && kPortamentoMode == 1 then
+    if kInstrCount <= 1 && kPortamentoMode == 1 then
         kPortamentoTime = 0
     endif
 
@@ -468,7 +476,7 @@ else
     kInstrCountScale = 1
 endif
 
-if kKeyboardMode == 0 || kKeyboardMode == 1 || gkSmallest == ib1 then
+if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     gaSendL sum gaSendL, (aClipL * kMasterVol * 0.7) / kInstrCountScale
     gaSendR sum gaSendR, (aClipR * kMasterVol * 0.7) / kInstrCountScale
 endif
@@ -499,7 +507,7 @@ kDist = kDistMidi
 
 kCrunch = 1 - kDist
 if kCrunch == 0 then
-	kCrunch = 0.01
+    kCrunch = 0.01
 endif
 
 aDistortL powershape gaSendL, kCrunch
@@ -523,7 +531,7 @@ endin
 <CsScore>
 f 1 0 16384 10 1 ;sine
 f 0 3600
-i 11 0 3600 0 0
+i 11 0 -1
 i 99 0 -1
 </CsScore>
 </CsoundSynthesizer>
