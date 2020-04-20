@@ -5,10 +5,19 @@ import sys
 
 include_read_midi_cc = False
 
-if len(sys.argv) > 1:
+if len(sys.argv) < 4:
+    print ("Usage: {0} <filename> <instr_number> <midi_offset>".format(sys.argv[0]))
+    exit(0)
+
+filename = sys.argv[1]
+instr_number = sys.argv[2]
+midi_instr_number = int(instr_number) + 1
+midi_offset = int(sys.argv[3])
+
+if len(sys.argv) > 4:
     include_read_midi_cc = True
 
-tree = ElementTree.parse('amsynth.carxp')
+tree = ElementTree.parse(filename)
 root = tree.getroot()
 
 midi_values = []
@@ -77,24 +86,25 @@ kMidiValue      ctrl7 ichannel, iindex, imin, imax
                 endop
     ''')
 
-print ('''
+print (f'''
 giInitMidi   = 0
 
-instr 2
+instr {midi_instr_number}
 ''')
 
 for midi_value in midi_values:
     name = midi_value['symbol']
-    midi_channel = midi_value.get('midichannel', 0)
+    midi_channel = int(midi_value.get('midichannel', 0)) + midi_offset
     midi_cc = midi_value.get('midicc', 127)
     value = midi_value['value']
 
+    name_with_number = f"_{instr_number}_{name}"
     if name in midi_range:
         midi_min, midi_max = midi_range[name]        
-        print (f'ReadMidiCC "{name}", {midi_min}, {midi_max}, {midi_channel}, {midi_cc}, {value}')
+        print (f'ReadMidiCC "{name_with_number}", {midi_min}, {midi_max}, {midi_channel}, {midi_cc}, {value}')
 
-print ('''
+print (f'''
 giInitMidi = 1
 endin
-schedule 2, 0, -1
+schedule {midi_instr_number}, 0, -1
 ''')

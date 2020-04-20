@@ -9,15 +9,12 @@ ksmps = 128
 nchnls = 2
 0dbfs = 1
 
-gkLargest init 0
-gkPrevNoteFreq = 0
-giPrevInstrFreq = 0
-
 gaSendL init 0
 gaSendR init 0
 
 massign 0, 0
 massign 1, 1
+massign 3, 3
 
 giSquarePulse[] init 128
 giTriangleSaw[] init 128
@@ -46,6 +43,34 @@ while iIndex <= 127 do
     giTriangleSaw[iIndex] = iTableNumber
     iIndex = iIndex + 1
 od
+
+
+opcode chnget, k, Si
+Sname, iInstr xin
+
+SInternalName sprintf "_%d_%s", iInstr, Sname
+kValue chnget SInternalName
+
+xout kValue
+endop
+
+
+opcode chnget, i, Si
+Sname, iInstr xin
+
+SInternalName sprintf "_%d_%s", iInstr, Sname
+iValue chnget SInternalName
+
+xout iValue
+endop
+
+
+opcode chnset, 0, kSi
+kValue, Sname, iInstr xin
+
+SInternalName sprintf "_%d_%s", iInstr, Sname
+chnset kValue, SInternalName
+endop
 
 
 opcode GetMax, k, k[]k
@@ -88,13 +113,16 @@ xout kresult
 endop
 
 
-instr 11
+opcode MonoSynth, 0, i
+iInstr xin
 
-kKeyboardModeMidi chnget "keyboard_mode"
+kLargest chnget "largest", iInstr
+knotes chnget "number_of_notes", iInstr
+kPrevNoteFreq chnget "prev_note_freq", iInstr
+
+kKeyboardModeMidi chnget "keyboard_mode", iInstr
 kKeyboardMode round kKeyboardModeMidi
 
-iInstr = 1
-gknotes init    0
 kkeys[]  init   128
 kcounter init   1
 kstatus, kchan, kb1, kb2    midiin
@@ -102,62 +130,73 @@ kFreq mtof kb1
 kAmp = kb2 / 127
 
 if kstatus == 144 && kb2 != 0 then
-    if gknotes == 0 then
+    if knotes == 0 then
         if kKeyboardMode != 0 then
             turnoff2 iInstr, 0, 1
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPrevNoteFreq, 1
+            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq, 1
         endif
         kcounter = 1
     else
         if kKeyboardMode == 1 then
-            gkPrevNoteFreq mtof gkLargest
+            kPrevNoteFreq mtof kLargest
             turnoff2 iInstr, 0, 1
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPrevNoteFreq
+            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
         endif
         kcounter = kcounter + 1
     endif
-    gkLargest   =   kb1
-    gknotes =   gknotes + 1
+    kLargest   =   kb1
+    knotes = knotes + 1
     gknoteon = 1
-    kkeys[gkLargest] = kcounter
-    gkPrevNoteFreq = kFreq
+    kkeys[kLargest] = kcounter
+    kPrevNoteFreq = kFreq
 
 elseif kstatus == 144 && kb2 == 0 || kstatus == 128 then
-    gkPrevNoteFreq mtof gkLargest
+    kPrevNoteFreq mtof kLargest
     kkeys[kb1] = 0
 
-    if gknotes == 1 then
-        gkLargest = kb1
+    if knotes == 1 then
+        kLargest = kb1
         if kKeyboardMode != 0 then
-            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, gkPrevNoteFreq
+            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, kPrevNoteFreq
         endif
         kcounter = 0
     else
-        gkLargest GetMax kkeys, gkLargest
+        kLargest GetMax kkeys, kLargest
         if kKeyboardMode == 1 then
-            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, gkPrevNoteFreq
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, gkPrevNoteFreq
+            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, kPrevNoteFreq
+            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
         endif
     endif
 
-    if gknotes > 0 then
-        gknotes = gknotes - 1
+    if knotes > 0 then
+        knotes = knotes - 1
         gknoteon = 0
     endif
-    if gknotes == 0 then
+    if knotes == 0 then
         turnoff2 iInstr, 2, 1
     endif
 endif
 
-endin
+chnset knotes, "number_of_notes", iInstr
+chnset kPrevNoteFreq, "prev_note_freq", iInstr
+chnset kLargest, "largest", iInstr
+
+endop
 
 
-instr 1
+opcode SimpleSynth, 0, iiiiiii
+p1, p2, p3, p4, p5, p6, p7 xin
 
-mididefault giPrevInstrFreq, p6
+iInstr = p1
+
+kLargest chnget "largest", iInstr
+iPrevInstrFreq chnget "prev_instr_freq", iInstr
+knotes chnget "number_of_notes", iInstr
+
+mididefault iPrevInstrFreq, p6
 mididefault 0, p7
 
-iInstrCount active 1, 0, 1
+iInstrCount active iInstr, 0, 1
 
 iTrackBaseFreq = 261.626
 iMiddle = sr / 2 * 0.99
@@ -172,14 +211,14 @@ iVelocity veloc 0, 1
 
 i16 = 1 / 16
 
-kKeyboardModeMidi chnget "keyboard_mode"
+kKeyboardModeMidi chnget "keyboard_mode", iInstr
 kKeyboardMode round kKeyboardModeMidi
 
-kMasterVolMidi chnget "master_vol"
+kMasterVolMidi chnget "master_vol", iInstr
 kMasterVol = kMasterVolMidi
 
 ;OCS 1
-iAttMidi chnget "amp_attack"
+iAttMidi chnget "amp_attack", iInstr
 iAtt pow iAttMidi, 3
 iAtt = iAtt + 0.0005
 
@@ -188,14 +227,14 @@ if iAtt < 0.01 then
     iAtt = 0.01
 endif
 
-iDecMidi chnget "amp_decay"
+iDecMidi chnget "amp_decay", iInstr
 iDec pow iDecMidi, 3
 iDec = iDec + 0.0005
 
-iSusMidi chnget "amp_sustain"
+iSusMidi chnget "amp_sustain", iInstr
 iSus = iSusMidi
 
-iRelMidi chnget "amp_release"
+iRelMidi chnget "amp_release", iInstr
 iRel pow iRelMidi, 3
 iRel = iRel + 0.0005
 
@@ -204,63 +243,63 @@ if iRel < 0.05 then
     iRel = 0.05
 endif
 
-iOsc1TypeMidi chnget "osc1_waveform"
+iOsc1TypeMidi chnget "osc1_waveform", iInstr
 iOsc1Type round iOsc1TypeMidi
 
-kOsc1ShapeMidi chnget "osc1_pulsewidth"
+kOsc1ShapeMidi chnget "osc1_pulsewidth", iInstr
 kOsc1Shape scale kOsc1ShapeMidi, 126, 0
 kOsc1Shape round kOsc1Shape 
 
 ;OSC 2
-iOsc2TypeMidi chnget "osc2_waveform"
+iOsc2TypeMidi chnget "osc2_waveform", iInstr
 iOsc2Type round iOsc2TypeMidi
 
-kOsc2ShapeMidi chnget "osc2_pulsewidth"
+kOsc2ShapeMidi chnget "osc2_pulsewidth", iInstr
 kOsc2Shape scale kOsc2ShapeMidi, 126, 0
 kOsc2Shape round kOsc2Shape
 
-kOsc2OctaveMidi chnget "osc2_range"
+kOsc2OctaveMidi chnget "osc2_range", iInstr
 kOsc2Octave round kOsc2OctaveMidi
 kOsc2Octave octave kOsc2Octave
 
-kOsc2SemitoneMidi chnget "osc2_pitch"
+kOsc2SemitoneMidi chnget "osc2_pitch", iInstr
 kOsc2Semitone round kOsc2SemitoneMidi
 kOsc2Semitone semitone kOsc2Semitone
 
-kOsc2DetuneMidi chnget "osc2_detune"
+kOsc2DetuneMidi chnget "osc2_detune", iInstr
 kOsc2Detune pow 1.25, kOsc2DetuneMidi
 
-kOsc2SyncMidi chnget "osc2_sync"
+kOsc2SyncMidi chnget "osc2_sync", iInstr
 kOsc2Sync round kOsc2SyncMidi 
 
 ;LFO
-iLfoTypeMidi chnget "lfo_waveform"
+iLfoTypeMidi chnget "lfo_waveform", iInstr
 kLfoType round iLfoTypeMidi 
 
-kLfoFreqMidi chnget "lfo_freq"
+kLfoFreqMidi chnget "lfo_freq", iInstr
 kLfoFreq pow kLfoFreqMidi, 2
 
-kLfoToOscMidi chnget "freq_mod_osc"
+kLfoToOscMidi chnget "freq_mod_osc", iInstr
 kLfoToOsc round kLfoToOscMidi 
 
-kLfoFreqAmountMidi chnget "freq_mod_amount"
+kLfoFreqAmountMidi chnget "freq_mod_amount", iInstr
 kLfoFreqAmount pow kLfoFreqAmountMidi, 3
 kLfoFreqAmount = kLfoFreqAmount - 1
 kLfoFreqAmount = kLfoFreqAmount / 2 + 0.5
 
-kLfoFilterAmountMidi chnget "filter_mod_amount"
+kLfoFilterAmountMidi chnget "filter_mod_amount", iInstr
 kLfoFilterAmount = kLfoFilterAmountMidi 
 kLfoFilterAmount = kLfoFilterAmount / 2 + 0.5
 
-kLfoAmpMidi chnget "amp_mod_amount"
+kLfoAmpMidi chnget "amp_mod_amount", iInstr
 kLfoAmp = kLfoAmpMidi
 kLfoAmp = ( kLfoAmp + 1 ) / 2
 
 ;Mix
-kOscMixMidi chnget "osc_mix"
+kOscMixMidi chnget "osc_mix", iInstr
 kOscMix = kOscMixMidi
 
-kOscRingModMidi chnget "osc_mix_mode"
+kOscRingModMidi chnget "osc_mix_mode", iInstr
 kOscRingMod = kOscRingModMidi
 
 kOsc1Vol = (1 - kOscMix) / 2
@@ -270,60 +309,60 @@ kOsc2Vol = (1 + kOscMix) / 2
 kOsc2Vol = kOsc2Vol * (1 - kOscRingMod)
 
 ;Reverb
-kReverbAmountMidi chnget "reverb_wet"
+kReverbAmountMidi chnget "reverb_wet", iInstr
 kReverbAmount = kReverbAmountMidi 
 
-kReverbSizeMidi chnget "reverb_roomsize"
+kReverbSizeMidi chnget "reverb_roomsize", iInstr
 kReverbSize = kReverbSizeMidi 
 
-kReverbWidthMidi chnget "reverb_width"
+kReverbWidthMidi chnget "reverb_width", iInstr
 kReverbWidth = kReverbWidthMidi 
 
-kReverbDampMidi chnget "reverb_damp"
+kReverbDampMidi chnget "reverb_damp", iInstr
 kReverbDamp  = kReverbDampMidi
 
 ;Filter
-iFAttMidi chnget "filter_attack"
+iFAttMidi chnget "filter_attack", iInstr
 iFAtt pow iFAttMidi, 3
 iFAtt = iFAtt + 0.0005
 
-iFDecMidi chnget "filter_decay"
+iFDecMidi chnget "filter_decay", iInstr
 iFDec pow iFDecMidi, 3
 iFDec = iFDec + 0.0005
 
-iFSusMidi chnget "filter_sustain"
+iFSusMidi chnget "filter_sustain", iInstr
 iFSus = iFSusMidi
 
-iFRelMidi chnget "filter_release"
+iFRelMidi chnget "filter_release", iInstr
 iFRel pow iFRelMidi, 3
 iFRel = iFRel + 0.0005
 
 ; TODO (nonameentername) reson doesn't match
-kFResMidi chnget "filter_resonance"
+kFResMidi chnget "filter_resonance", iInstr
 kFRes scale kFResMidi, 20.0, 1.0
 
-kFEnvAmtMidi chnget "filter_env_amount"
+kFEnvAmtMidi chnget "filter_env_amount", iInstr
 kFEnvAmt = kFEnvAmtMidi
 
-kFCutoffMidi chnget "filter_cutoff"
+kFCutoffMidi chnget "filter_cutoff", iInstr
 kFCutoff pow 16, kFCutoffMidi
 
-kFTypeMidi chnget "filter_type"
+kFTypeMidi chnget "filter_type", iInstr
 kFType round kFTypeMidi
 
-kFKeyTrackMidi chnget "filter_kbd_track"
+kFKeyTrackMidi chnget "filter_kbd_track", iInstr
 kFKeyTrack = kFKeyTrackMidi 
 
-iPortamentoTimeMidi chnget "portamento_time"
+iPortamentoTimeMidi chnget "portamento_time", iInstr
 kPortamentoTime = iPortamentoTimeMidi
 
-iPortamentoModeMidi chnget "portamento_mode"
+iPortamentoModeMidi chnget "portamento_mode", iInstr
 kPortamentoMode round iPortamentoModeMidi
 
-kInstrCount active 1, 0, 1
+kInstrCount active iInstr, 0, 1
 
 if iPreviousFreq >= 0 then
-    giPrevInstrFreq = iPreviousFreq
+    iPrevInstrFreq = iPreviousFreq
 endif
 
 if kKeyboardMode == 0 then
@@ -331,14 +370,14 @@ if kKeyboardMode == 0 then
         kPortamentoTime = 0
     endif
 
-    kFreq portk iFreq, 0.2 * kPortamentoTime, giPrevInstrFreq
+    kFreq portk iFreq, 0.2 * kPortamentoTime, iPrevInstrFreq
 else
-    if gknotes <= 1 && gknoteon == 1 && kPortamentoMode == 1 then
+    if knotes <= 1 && gknoteon == 1 && kPortamentoMode == 1 then
         kPortamentoTime = 0
     endif
 
-    kFreq = cpsoct((gkLargest / 12) + 3)
-    kFreq portk kFreq, 0.2 * kPortamentoTime, giPrevInstrFreq
+    kFreq = cpsoct((kLargest / 12) + 3)
+    kFreq portk kFreq, 0.2 * kPortamentoTime, iPrevInstrFreq
 endif
 
 if kLfoType == 0 then
@@ -470,39 +509,62 @@ aClipL clip aVco, 0, 0.9, 0.4
 aClipR clip aVco, 0, 0.9, 0.4
 
 if kKeyboardMode == 0 then
-    kInstrCount active 1, 0, 0
+    kInstrCount active iInstr, 0, 0
     kInstrCountScale port kInstrCount^0.5, 0.01
 else
     kInstrCountScale = 1
 endif
 
 if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
-    gaSendL sum gaSendL, (aClipL * kMasterVol * 0.7) / kInstrCountScale
-    gaSendR sum gaSendR, (aClipR * kMasterVol * 0.7) / kInstrCountScale
+    if kInstrCountScale != 0 then
+        gaSendL sum gaSendL, (aClipL * kMasterVol * 0.7) / kInstrCountScale
+        gaSendR sum gaSendR, (aClipR * kMasterVol * 0.7) / kInstrCountScale
+    endif
 endif
 
-giPrevInstrFreq = iFreq
+iPrevInstrFreq = iFreq
+chnset iPrevInstrFreq, "prev_instr_freq", iInstr
 
+endop
+
+
+instr 11
+    MonoSynth 1
 endin
+
+instr 1
+    SimpleSynth p1, p2, p3, p4, p5, p6, p7
+endin
+
+instr 31
+    MonoSynth 3
+endin
+
+instr 3
+    SimpleSynth p1, p2, p3, p4, p5, p6, p7
+endin
+
 
 
 instr 99
 
+iInstr = 1
+
 ;Reverb
-kReverbAmountMidi chnget "reverb_wet"
+kReverbAmountMidi chnget "reverb_wet", iInstr
 kReverbAmount = kReverbAmountMidi 
 
-kReverbSizeMidi chnget "reverb_roomsize"
+kReverbSizeMidi chnget "reverb_roomsize", iInstr
 kReverbSize = kReverbSizeMidi 
 
-kReverbWidthMidi chnget "reverb_width"
+kReverbWidthMidi chnget "reverb_width", iInstr
 kReverbWidth = kReverbWidthMidi 
 
-kReverbDampMidi chnget "reverb_damp"
+kReverbDampMidi chnget "reverb_damp", iInstr
 kReverbDamp  = kReverbDampMidi
 
 ;distortion
-kDistMidi chnget "distortion_crunch"
+kDistMidi chnget "distortion_crunch", iInstr
 kDist = kDistMidi 
 
 kCrunch = 1 - kDist
@@ -532,6 +594,7 @@ endin
 f 1 0 16384 10 1 ;sine
 f 0 3600
 i 11 0 -1
+i 31 0 -1
 i 99 0 -1
 </CsScore>
 </CsoundSynthesizer>
