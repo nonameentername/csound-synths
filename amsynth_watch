@@ -1,6 +1,13 @@
 #!/bin/bash
 
-while inotifywait -q -e close_write *.carxp || true; do
+pkill inotify
+
+while inotifywait -q -e close_write amsynth.carxp || true; do
     ./amsynth_midi amsynth.carxp 1 0 | nc -w 1 -u 127.0.0.1 1234
+done &
+
+while inotifywait -q -e close_write amsynth2.carxp || true; do
     ./amsynth_midi amsynth2.carxp 3 2 | nc -w 1 -u 127.0.0.1 1234
-done
+done &
+
+wait

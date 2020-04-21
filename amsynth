@@ -3,6 +3,7 @@
 set -m
 
 killall csound
+killall amsynth_watch
 
 ./amsynth_watch &
 AMSYNTH_WATCH_PID=$!

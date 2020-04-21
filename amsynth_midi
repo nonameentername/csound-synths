@@ -69,6 +69,47 @@ midi_range = {
     "master_vol": [ 0, 1 ]
 }
 
+midi_names = {
+    "amp_attack": "1_amp_attack",
+    "amp_decay": "1_amp_decay",
+    "amp_sustain": "1_amp_sustain",
+    "amp_release": "1_amp_release",
+    "osc1_waveform": "1_osc_waveform",
+    "osc1_pulsewidth": "1_osc_pulsewidth",
+    "osc2_waveform": "2_osc_waveform",
+    "osc2_pulsewidth": "2_osc_pulsewidth",
+    "osc2_range": "2_osc_range",
+    "osc2_pitch": "2_osc_pitch",
+    "osc2_detune": "2_osc_detune",
+    "osc_mix": "1_osc_mix",
+    "osc_mix_mode": "1_osc_mix_mode",
+    "portamento_time": "1_portamento_time",
+    "portamento_mode": "1_portamento_mode",
+    "filter_attack": "1_filter_attack",
+    "filter_decay": "1_filter_decay",
+    "filter_sustain": "1_filter_sustain",
+    "filter_release": "1_filter_release",
+    "filter_resonance": "1_filter_resonance",
+    "filter_env_amount": "1_filter_env_amount",
+    "filter_cutoff": "1_filter_cutoff",
+    "filter_type": "1_filter_type",
+    "filter_kbd_track": "1_filter_kbd_track",
+    "lfo_waveform": "1_lfo_waveform",
+    "lfo_freq": "1_lfo_freq",
+    "freq_mod_osc": "1_freq_mod_osc",
+    "freq_mod_amount": "1_freq_mod_amount",
+    "filter_mod_amount": "1_filter_mod_amount",
+    "amp_mod_amount": "1_amp_mod_amount",
+    "reverb_wet": "1_reverb_wet",
+    "reverb_roomsize": "1_reverb_roomsize",
+    "reverb_width": "1_reverb_width",
+    "reverb_damp": "1_reverb_damp",
+    "distortion_crunch": "1_distortion_crunch",
+    "keyboard_mode": "1_keyboard_mode",
+    "osc2_sync": "2_osc_sync",
+    "master_vol": "1_master_vol"
+}
+
 if include_read_midi_cc:
     print ('''
 giInitMidi   = 0
@@ -98,9 +139,10 @@ for midi_value in midi_values:
     midi_cc = midi_value.get('midicc', 127)
     value = midi_value['value']
 
-    name_with_number = f"_{instr_number}_{name}"
     if name in midi_range:
         midi_min, midi_max = midi_range[name]        
+        name = midi_names[name]
+        name_with_number = f"_{instr_number}_{name}"
         print (f'ReadMidiCC "{name_with_number}", {midi_min}, {midi_max}, {midi_channel}, {midi_cc}, {value}')
 
 print (f'''
