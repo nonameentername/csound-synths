@@ -1,5 +1,7 @@
 #!/bin/bash
 
+pkill inotify
+
 while inotifywait -q -e close_write amsynth.carxp || true; do
     ./amsynth_midi amsynth.carxp 1 0 | nc -w 1 -u 127.0.0.1 1234
 done &
