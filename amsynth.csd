@@ -9,12 +9,11 @@ ksmps = 128
 nchnls = 2
 0dbfs = 1
 
-gaSendL init 0
-gaSendR init 0
-
 massign 0, 0
 massign 1, 1
+massign 2, 1
 massign 3, 3
+massign 4, 3
 
 giSquarePulse[] init 128
 giTriangleSaw[] init 128
@@ -45,6 +44,16 @@ while iIndex <= 127 do
 od
 
 
+opcode chnget, a, Sip
+SName, iInstr, iIndex xin
+
+SInternalName sprintf "_%d_%d_%s", iInstr, iIndex, SName
+aValue chnget SInternalName
+
+xout aValue
+endop
+
+
 opcode chnget, k, Sip
 SName, iInstr, iIndex xin
 
@@ -62,6 +71,14 @@ SInternalName sprintf "_%d_%d_%s", iInstr, iIndex, SName
 iValue chnget SInternalName
 
 xout iValue
+endop
+
+
+opcode chnset, 0, aSip
+aValue, SName, iInstr, iIndex xin
+
+SInternalName sprintf "_%d_%d_%s", iInstr, iIndex, SName
+chnset aValue, SInternalName
 endop
 
 
@@ -126,46 +143,48 @@ kKeyboardMode round kKeyboardModeMidi
 
 kKeys[]  init   128
 kCounter init   1
-kStatus, kChannel, kb1, kb2    midiin
-kFreq mtof kb1
-kAmp = kb2 / 127
+iStatus = p3
+ib1 = p4
+ib2 = p5
+iFreq mtof ib1
+iAmp = ib2 / 127
 
-if kStatus == 144 && kb2 != 0 then
+if iStatus < 0 && ib2 != 0 then
     if kNotes == 0 then
         if kKeyboardMode != 0 then
             turnoff2 iInstr, 0, 1
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq, 1
+            schedkwhen  1, 0, 0, iInstr, 0, -1, ib1, ib2, kPrevNoteFreq, 1
         endif
         kCounter = 1
     else
         if kKeyboardMode == 1 then
             kPrevNoteFreq mtof kLargest
             turnoff2 iInstr, 0, 1
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
+            schedkwhen  1, 0, 0, iInstr, 0, -1, ib1, ib2, kPrevNoteFreq
         endif
         kCounter = kCounter + 1
     endif
-    kLargest   =   kb1
+    kLargest   =   ib1
     kNotes = kNotes + 1
     kNoteOn = 1
     kKeys[kLargest] = kCounter
-    kPrevNoteFreq = kFreq
+    kPrevNoteFreq = iFreq
 
-elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
+elseif iStatus >= 0 && ib2 == 0 then
     kPrevNoteFreq mtof kLargest
-    kKeys[kb1] = 0
+    kKeys[ib1] = 0
 
     if kNotes == 1 then
-        kLargest = kb1
+        kLargest = ib1
         if kKeyboardMode != 0 then
-            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, kPrevNoteFreq
+            schedkwhen  1, 0, 0, -iInstr, 0, 0, ib1, ib2, kPrevNoteFreq
         endif
         kCounter = 0
     else
         kLargest GetMax kKeys, kLargest
         if kKeyboardMode == 1 then
-            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, kPrevNoteFreq
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
+            schedkwhen  1, 0, 0, -iInstr, 0, 0, ib1, ib2, kPrevNoteFreq
+            schedkwhen  1, 0, 0, iInstr, 0, -1, ib1, ib2, kPrevNoteFreq
         endif
     endif
 
@@ -430,6 +449,70 @@ xout aOut
 endop
 
 
+opcode ASynthOverDrive, a, iia
+iInstr, iNum, aIn xin
+
+kDistMidi chnget "distortion_crunch", iInstr, iNum
+kDist = kDistMidi 
+
+kCrunch = 1 - kDist
+if kCrunch == 0 then
+    kCrunch = 0.01
+endif
+
+aOut powershape aIn, kCrunch
+
+xout aOut
+endop
+
+
+opcode ASynthReverb, aa, iiaa
+iInstr, iNum, aInLeft, aInRight xin
+
+kReverbAmountMidi chnget "reverb_wet", iInstr
+kReverbAmount = kReverbAmountMidi 
+
+kReverbSizeMidi chnget "reverb_roomsize", iInstr
+kReverbSize = kReverbSizeMidi 
+
+kReverbWidthMidi chnget "reverb_width", iInstr
+kReverbWidth = kReverbWidthMidi 
+
+kReverbDampMidi chnget "reverb_damp", iInstr
+kReverbDamp  = kReverbDampMidi
+
+aReverbL, aReverbR freeverb aInLeft, aInRight, kReverbSize, kReverbDamp
+
+kWet1 = kReverbAmount * ( kReverbWidth / 2 + 0.5 )
+kWet2 = kReverbAmount * ( ( 1 - kReverbWidth ) / 2 )
+kDry = 1 - kReverbAmount
+
+aOutLeft = aReverbL * kWet1 + aReverbR * kWet2 + aInLeft * kDry
+aOutRight = aReverbR * kWet1 + aReverbL * kWet2 + aInRight * kDry
+
+xout aOutLeft, aOutRight
+endop
+
+
+opcode ASynthEffects, 0, i
+iInstr xin
+
+aSendL chnget "send_left", iInstr
+aSendR chnget "send_right", iInstr
+
+aDistortL ASynthOverDrive iInstr, 1, aSendL
+aDistortR ASynthOverDrive iInstr, 1, aSendR
+aLeft, aRight ASynthReverb iInstr, 1, aDistortL, aDistortR
+
+outs aLeft, aRight
+clear aSendL, aSendR
+
+chnset aSendL, "send_left", iInstr
+chnset aSendR, "send_right", iInstr
+
+endop
+
+
 opcode ASynth, 0, iiiiiii
 p1, p2, p3, p4, p5, p6, p7 xin
 
@@ -529,10 +612,17 @@ else
     kInstrCountScale = 1
 endif
 
+
 if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     if kInstrCountScale != 0 then
-        gaSendL sum gaSendL, (aClipL * kMasterVol * 0.7) / kInstrCountScale
-        gaSendR sum gaSendR, (aClipR * kMasterVol * 0.7) / kInstrCountScale
+        aSendL chnget "send_left", iInstr
+        aSendR chnget "send_right", iInstr
+
+        aSendL sum aSendL, (aClipL * kMasterVol * 0.7) / kInstrCountScale
+        aSendR sum aSendR, (aClipR * kMasterVol * 0.7) / kInstrCountScale
+
+        chnset aSendL, "send_left", iInstr
+        chnset aSendR, "send_right", iInstr
     endif
 endif
 
@@ -542,65 +632,26 @@ chnset iPrevInstrFreq, "prev_instr_freq", iInstr
 endop
 
 
-instr 11
-    MonoSynth 1
-endin
 
 instr 1
     ASynth p1, p2, p3, p4, p5, p6, p7
 endin
 
-instr 31
-    MonoSynth 3
+instr 11
+    MonoSynth 1
+    ASynthEffects 1
 endin
 
 instr 3
     ASynth p1, p2, p3, p4, p5, p6, p7
 endin
 
-
+instr 31
+    MonoSynth 3
+    ASynthEffects 3
+endin
 
 instr 99
-
-iInstr = 1
-
-;Reverb
-kReverbAmountMidi chnget "reverb_wet", iInstr
-kReverbAmount = kReverbAmountMidi 
-
-kReverbSizeMidi chnget "reverb_roomsize", iInstr
-kReverbSize = kReverbSizeMidi 
-
-kReverbWidthMidi chnget "reverb_width", iInstr
-kReverbWidth = kReverbWidthMidi 
-
-kReverbDampMidi chnget "reverb_damp", iInstr
-kReverbDamp  = kReverbDampMidi
-
-;distortion
-kDistMidi chnget "distortion_crunch", iInstr
-kDist = kDistMidi 
-
-kCrunch = 1 - kDist
-if kCrunch == 0 then
-    kCrunch = 0.01
-endif
-
-aDistortL powershape gaSendL, kCrunch
-aDistortR powershape gaSendR, kCrunch
-
-aReverbL, aReverbR freeverb aDistortL, aDistortR, kReverbSize, kReverbDamp
-
-kWet1 = kReverbAmount * ( kReverbWidth / 2 + 0.5 )
-kWet2 = kReverbAmount * ( ( 1 - kReverbWidth ) / 2 )
-kDry = 1 - kReverbAmount
-
-aLeft = aReverbL * kWet1 + aReverbR * kWet2 + aDistortL * kDry
-aRight = aReverbR * kWet1 + aReverbL * kWet2 + aDistortR * kDry
-
-outs aLeft, aRight
-clear gaSendL, gaSendR
-
 endin
 
 </CsInstruments>
