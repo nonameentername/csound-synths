@@ -5,7 +5,7 @@
 <CsInstruments>
 
 sr = 48000
-ksmps = 128
+ksmps = 256
 nchnls = 2
 0dbfs = 1
 
@@ -519,7 +519,7 @@ chnset aSendR, "send_right", iInstr
 endop
 
 
-opcode ASynthPortamento , k, iii
+opcode ASynthPortamento, k, iii
 iInstr, iFreq, iPreviousFreq xin
 
 kKeyboardModeMidi chnget "keyboard_mode", iInstr
@@ -555,25 +555,9 @@ endif
 xout kFreq
 endop
 
-opcode ASynth, 0, iiiiiii
-p1, p2, p3, p4, p5, p6, p7 xin
 
-iInstr = p1
-
-mididefault 0, p7
-
-ib1 = p4
-ib2 = p5
-iFreq mtof ib1
-iAmp = ib2 / 127
-iPreviousFreq = p6
-iUserForMono = p7
-
-kKeyboardModeMidi chnget "keyboard_mode", iInstr
-kKeyboardMode round kKeyboardModeMidi
-
-kMasterVolMidi chnget "master_vol", iInstr
-kMasterVol = kMasterVolMidi
+opcode ASynthLfoFreq, k, iika
+iInstr, iNum, kFreq, aLfo xin
 
 kLfoToOscMidi chnget "freq_mod_osc", iInstr
 kLfoToOsc round kLfoToOscMidi 
@@ -583,35 +567,24 @@ kLfoFreqAmount pow kLfoFreqAmountMidi, 3
 kLfoFreqAmount = kLfoFreqAmount - 1
 kLfoFreqAmount = kLfoFreqAmount / 2 + 0.5
 
-kFreq ASynthPortamento iInstr, iFreq, iPreviousFreq
 
-aLfoOsc ASynthLfo iInstr, 1, kFreq
-
-kOsc1Freq = kFreq
-
-if kLfoToOsc == 0 || kLfoToOsc == 1 then
-    kOsc1Lfo = kFreq * ( kLfoFreqAmount * ( aLfoOsc + 1 ) + 1 - kLfoFreqAmount )
-    kOsc1Freq min kOsc1Lfo, sr / 2
+if kLfoToOsc == 0 || kLfoToOsc == iNum then
+    kOsc = kFreq * ( kLfoFreqAmount * ( aLfo + 1 ) + 1 - kLfoFreqAmount )
+    kFreq min kOsc, sr / 2
 endif
 
-kOsc2Freq ASynthDetune iInstr, 2, kFreq
+xout kFreq
+endop
 
-if kLfoToOsc == 0 || kLfoToOsc == 2 then
-    kOsc2Lfo = kOsc2Freq * ( kLfoFreqAmount * ( aLfoOsc + 1 ) + 1 - kLfoFreqAmount )
-    kOsc2Freq min kOsc2Lfo, sr / 2
-endif
 
-aNone init 0
+opcode ASynthOut, 0, iai
+iInstr, aVco, iUserForMono xin
 
-aOsc1, aOsc1Sync ASynthOsc iInstr, 1, iAmp, kOsc1Freq, aNone
+kMasterVolMidi chnget "master_vol", iInstr
+kMasterVol = kMasterVolMidi
 
-aOsc2, aOsc2Sync ASynthOsc iInstr, 2, iAmp, kOsc2Freq, aOsc1Sync
-
-aVco ASynthMix iInstr, 1, aOsc1, aOsc2
-
-aVco ASynthAmp iInstr, 1, aVco, aLfoOsc
-
-aVco ASynthFilter iInstr, 1, aVco, aLfoOsc, kFreq
+kKeyboardModeMidi chnget "keyboard_mode", iInstr
+kKeyboardMode round kKeyboardModeMidi
 
 aClipL clip aVco, 0, 0.9, 0.4
 aClipR clip aVco, 0, 0.9, 0.4
@@ -624,7 +597,6 @@ if kKeyboardMode == 0 then
 else
     kInstrCountScale = 1
 endif
-
 
 if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     if kInstrCountScale != 0 then
@@ -639,9 +611,48 @@ if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     endif
 endif
 
-
 endop
 
+
+opcode ASynth, 0, iiiiiii
+p1, p2, p3, p4, p5, p6, p7 xin
+
+iInstr = p1
+
+mididefault 0, p7
+
+ib1 = p4
+ib2 = p5
+iFreq mtof ib1
+iAmp = ib2 / 127
+iPreviousFreq = p6
+iUserForMono = p7
+
+kFreq ASynthPortamento iInstr, iFreq, iPreviousFreq
+
+aLfoOsc ASynthLfo iInstr, 1, kFreq
+
+kOsc1Freq ASynthLfoFreq iInstr, 1, kFreq, aLfoOsc
+
+kOsc2Freq ASynthDetune iInstr, 2, kFreq
+
+kOsc2Freq ASynthLfoFreq iInstr, 2, kOsc2Freq, aLfoOsc
+
+aNone init 0
+
+aOsc1, aOsc1Sync ASynthOsc iInstr, 1, iAmp, kOsc1Freq, aNone
+
+aOsc2, aOsc2Sync ASynthOsc iInstr, 2, iAmp, kOsc2Freq, aOsc1Sync
+
+aVco ASynthMix iInstr, 1, aOsc1, aOsc2
+
+aVco ASynthAmp iInstr, 1, aVco, aLfoOsc
+
+aVco ASynthFilter iInstr, 1, aVco, aLfoOsc, kFreq
+
+ASynthOut iInstr, aVco, iUserForMono
+
+endop
 
 
 instr 1
