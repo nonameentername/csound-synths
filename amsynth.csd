@@ -223,10 +223,13 @@ kSync round kSyncMidi
 
 if kSync == 1 then
     aSync diff 1 - aSyncIn
+    aPhasor phasor kFreq
+else
+    aSync init 0
+    aPhasor init 0
 endif
 
 kPhase = 0
-aPhasor phasor kFreq
 
 if kType == 0 then
     ;sine wave
@@ -516,17 +519,47 @@ chnset aSendR, "send_right", iInstr
 endop
 
 
+opcode ASynthPortamento , k, iii
+iInstr, iFreq, iPreviousFreq xin
+
+kKeyboardModeMidi chnget "keyboard_mode", iInstr
+kKeyboardMode round kKeyboardModeMidi
+
+iPortamentoTimeMidi chnget "portamento_time", iInstr
+kPortamentoTime = iPortamentoTimeMidi
+
+iPortamentoModeMidi chnget "portamento_mode", iInstr
+kPortamentoMode round iPortamentoModeMidi
+
+kLargest chnget "largest", iInstr
+kNotes chnget "number_of_notes", iInstr
+kNoteOn chnget "note_on", iInstr
+
+kInstrCount active iInstr, 0, 1
+
+if kKeyboardMode == 0 then
+    if kInstrCount <= 1 && kPortamentoMode == 1 then
+        kPortamentoTime = 0
+    endif
+
+    kFreq portk iFreq, 0.2 * kPortamentoTime, iPreviousFreq
+else
+    if kNotes <= 1 && kNoteOn == 1 && kPortamentoMode == 1 then
+        kPortamentoTime = 0
+    endif
+
+    kFreq = cpsoct((kLargest / 12) + 3)
+    kFreq portk kFreq, 0.2 * kPortamentoTime, iPreviousFreq
+endif
+
+xout kFreq
+endop
+
 opcode ASynth, 0, iiiiiii
 p1, p2, p3, p4, p5, p6, p7 xin
 
 iInstr = p1
 
-kLargest chnget "largest", iInstr
-iPrevInstrFreq chnget "prev_instr_freq", iInstr
-kNotes chnget "number_of_notes", iInstr
-kNoteOn chnget "note_on", iInstr
-
-mididefault iPrevInstrFreq, p6
 mididefault 0, p7
 
 ib1 = p4
@@ -550,32 +583,7 @@ kLfoFreqAmount pow kLfoFreqAmountMidi, 3
 kLfoFreqAmount = kLfoFreqAmount - 1
 kLfoFreqAmount = kLfoFreqAmount / 2 + 0.5
 
-kInstrCount active iInstr, 0, 1
-
-if iPreviousFreq >= 0 then
-    iPrevInstrFreq = iPreviousFreq
-endif
-
-iPortamentoTimeMidi chnget "portamento_time", iInstr
-kPortamentoTime = iPortamentoTimeMidi
-
-iPortamentoModeMidi chnget "portamento_mode", iInstr
-kPortamentoMode round iPortamentoModeMidi
-
-if kKeyboardMode == 0 then
-    if kInstrCount <= 1 && kPortamentoMode == 1 then
-        kPortamentoTime = 0
-    endif
-
-    kFreq portk iFreq, 0.2 * kPortamentoTime, iPrevInstrFreq
-else
-    if kNotes <= 1 && kNoteOn == 1 && kPortamentoMode == 1 then
-        kPortamentoTime = 0
-    endif
-
-    kFreq = cpsoct((kLargest / 12) + 3)
-    kFreq portk kFreq, 0.2 * kPortamentoTime, iPrevInstrFreq
-endif
+kFreq ASynthPortamento iInstr, iFreq, iPreviousFreq
 
 aLfoOsc ASynthLfo iInstr, 1, kFreq
 
@@ -608,6 +616,8 @@ aVco ASynthFilter iInstr, 1, aVco, aLfoOsc, kFreq
 aClipL clip aVco, 0, 0.9, 0.4
 aClipR clip aVco, 0, 0.9, 0.4
 
+kInstrCount active iInstr, 0, 1
+
 if kKeyboardMode == 0 then
     kInstrCount active iInstr, 0, 0
     kInstrCountScale port kInstrCount^0.5, 0.01
@@ -629,8 +639,6 @@ if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     endif
 endif
 
-iPrevInstrFreq = iFreq
-chnset iPrevInstrFreq, "prev_instr_freq", iInstr
 
 endop
 
