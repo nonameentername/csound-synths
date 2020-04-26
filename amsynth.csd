@@ -615,7 +615,7 @@ xout kFreq
 endop
 
 
-opcode ASynthChannelSet, 0, iiai
+opcode ASynthRender, aa, iiai
 iInstr, iNum, aVco, iUserForMono xin
 
 kMasterVolMidi chnget "master_vol", iInstr, iNum
@@ -638,21 +638,34 @@ endif
 
 if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     if kInstrCountScale != 0 then
-        aSendL chnget "send_left", iInstr, iNum
-        aSendR chnget "send_right", iInstr, iNum
-
-        aSendL sum aSendL, (aClipL * kMasterVol * 0.7) / kInstrCountScale
-        aSendR sum aSendR, (aClipR * kMasterVol * 0.7) / kInstrCountScale
-
-        chnset aSendL, "send_left", iInstr, iNum
-        chnset aSendR, "send_right", iInstr, iNum
+        aLeft = (aClipL * kMasterVol * 0.7) / kInstrCountScale
+        aRight = (aClipR * kMasterVol * 0.7) / kInstrCountScale
+    else
+        aLeft init 0
+        aRight init 0
     endif
 endif
+
+xout aLeft, aRight
+endop
+
+
+opcode ASynthChannelSet, 0, iiaa
+iInstr, iNum, aLeft, aRight xin
+
+aSendL chnget "send_left", iInstr, iNum
+aSendR chnget "send_right", iInstr, iNum
+
+aSendL sum aSendL, aLeft
+aSendR sum aSendR, aRight
+
+chnset aSendL, "send_left", iInstr, iNum
+chnset aSendR, "send_right", iInstr, iNum
 
 endop
 
 
-opcode ASynth, 0, iiiiiip
+opcode ASynth, aa, iiiiiip
 p1, p2, p3, p4, p5, p6, p7 xin
 
 iInstr = p1
@@ -686,13 +699,15 @@ aVco ASynthAmp iInstr, 1, aVco, aLfoOsc
 
 aVco ASynthFilter iInstr, 1, aVco, aLfoOsc, kFreq, iAmp
 
-ASynthChannelSet iInstr, 1, aVco, iUserForMono
+aSendL, aSendR ASynthRender iInstr, 1, aVco, iUserForMono
 
+xout aSendL, aSendR
 endop
 
 
 instr 1
-    ASynth p1, p2, p3, p4, p5, p6, p7
+    aSendL, aSendR ASynth p1, p2, p3, p4, p5, p6, p7
+    ASynthChannelSet p1, 1, aSendL, aSendR
 endin
 
 instr 11
@@ -703,7 +718,8 @@ instr 11
 endin
 
 instr 3
-    ASynth p1, p2, p3, p4, p5, p6, p7
+    aSendL, aSendR ASynth p1, p2, p3, p4, p5, p6, p7
+    ASynthChannelSet p1, 1, aSendL, aSendR
 endin
 
 instr 31
