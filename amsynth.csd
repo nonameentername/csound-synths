@@ -11,6 +11,9 @@ nchnls = 2
 
 massign 0, 0
 
+isf sfload  "FluidR3_GM.sf2"
+sfpassign   0, isf
+
 giSquarePulse[] init 128
 giTriangleSaw[] init 128
 
@@ -38,6 +41,32 @@ while iIndex <= 127 do
     giTriangleSaw[iIndex] = iTableNumber
     iIndex = iIndex + 1
 od
+
+
+opcode FSynthOsc, aa, iiika
+iInstr, iNum, iAmp, iFreq, aSyncIn xin
+
+iShapeMidi chnget "osc_pulsewidth", iInstr, iNum
+iShape = iShapeMidi * 127
+iShape round iShape
+
+kSyncMidi chnget "osc_sync", iInstr, iNum
+kSync round kSyncMidi 
+
+if kSync == 1 then
+    aSync diff 1 - aSyncIn
+    aPhasor phasor iFreq
+else
+    aSync init 0
+    aPhasor init 0
+endif
+
+iNote = 69+12*log2(iFreq/440)
+kAmp = 1/15000
+aOut sfplaym iAmp, iNote, kAmp*iAmp, iFreq, iShape, 1
+
+xout aOut, aPhasor
+endop
 
 
 opcode chnget, a, Sii
@@ -152,7 +181,7 @@ kInstrnum = iInstr + kChannel/100 + kb1/100000
 
 if kKeyboardMode == 0 then
     if kStatus == 144 && kb2 != 0 then
-        kInstrCount active kInstrnum, 0, 1
+        kInstrCount active kInstrnum, 0, 0
         if kInstrCount > 16 then
             turnoff2 kInstrnum, 4, 0
         endif
