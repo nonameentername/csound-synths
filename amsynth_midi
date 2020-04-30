@@ -96,8 +96,8 @@ midi_names = {
     "filter_kbd_track": "1_filter_kbd_track",
     "lfo_waveform": "1_lfo_waveform",
     "lfo_freq": "1_lfo_freq",
-    "freq_mod_osc": "1_freq_mod_osc",
-    "freq_mod_amount": "1_freq_mod_amount",
+    "freq_mod_osc": ["1_freq_mod_osc", "2_freq_mod_osc"],
+    "freq_mod_amount": ["1_freq_mod_amount", "2_freq_mod_amount"],
     "filter_mod_amount": "1_filter_mod_amount",
     "amp_mod_amount": "1_amp_mod_amount",
     "reverb_wet": "1_reverb_wet",
@@ -106,7 +106,7 @@ midi_names = {
     "reverb_damp": "1_reverb_damp",
     "distortion_crunch": "1_distortion_crunch",
     "keyboard_mode": "1_keyboard_mode",
-    "osc2_sync": "2_osc_sync",
+    "osc2_sync": ["1_osc_sync", "2_osc_sync"],
     "master_vol": "1_master_vol"
 }
 
@@ -142,8 +142,13 @@ for midi_value in midi_values:
     if name in midi_range:
         midi_min, midi_max = midi_range[name]        
         name = midi_names[name]
-        name_with_number = f"_{instr_number}_{name}"
-        print (f'ReadMidiCC "{name_with_number}", {midi_min}, {midi_max}, {midi_channel}, {midi_cc}, {value}')
+        if isinstance(name, list):
+            names = name
+        else:
+            names = [name]
+        for name in names:
+            name_with_number = f"_{instr_number}_{name}"
+            print (f'ReadMidiCC "{name_with_number}", {midi_min}, {midi_max}, {midi_channel}, {midi_cc}, {value}')
 
 print (f'''
 giInitMidi = 1

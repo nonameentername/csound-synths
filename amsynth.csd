@@ -415,12 +415,14 @@ kCutoff max kCutoff, 10
 
 if kType == 0 then
     ;lowpass
-    aOut rbjeq aIn, kCutoff, 1, kResonance, 1, 0
+    kResonance scale kResonanceMidi, 1.0, 0.0
+    aOut moogladder aIn, kCutoff, kResonance
 elseif kType == 1 then
     ;highpass
     aOut rbjeq aIn, 1 - kCutoff, 1, kResonance, 1, 2
 elseif kType == 2 then
     ;bandpass
+    kResonance scale kResonanceMidi, 25.0, 1.0
     aOut rbjeq aIn, kCutoff, 1, kResonance, 1, 4
 elseif kType == 3 then
     ;band-reject
@@ -543,10 +545,12 @@ kWet1 = kReverbAmount * ( kReverbWidth / 2 + 0.5 )
 kWet2 = kReverbAmount * ( ( 1 - kReverbWidth ) / 2 )
 kDry = 1 - kReverbAmount
 
-aOutLeft = aReverbL * kWet1 + aReverbR * kWet2 + aInLeft * kDry
-aOutRight = aReverbR * kWet1 + aReverbL * kWet2 + aInRight * kDry
+aInput = aInLeft + aInRight * 0.015
 
-xout aOutLeft, aOutRight
+aOutLeft = aReverbL * kWet1 + aReverbR * kWet2 + aInput * kDry
+aOutRight = aReverbR * kWet1 + aReverbL * kWet2 + aInput * kDry
+
+xout (aOutLeft + aInLeft) / 2, (aOutRight + aInRight) / 2
 endop
 
 
@@ -634,7 +638,6 @@ kLfoFreqAmount pow kLfoFreqAmountMidi, 3
 kLfoFreqAmount = kLfoFreqAmount - 1
 kLfoFreqAmount = kLfoFreqAmount / 2 + 0.5
 
-
 if kLfoToOsc == 0 || kLfoToOsc == iNum then
     kOsc = kFreq * ( kLfoFreqAmount * ( aLfo + 1 ) + 1 - kLfoFreqAmount )
     kFreq min kOsc, sr / 2
@@ -653,8 +656,8 @@ kMasterVol = kMasterVolMidi
 kKeyboardModeMidi chnget "keyboard_mode", iInstr, iNum
 kKeyboardMode round kKeyboardModeMidi
 
-aClipL clip aVco, 0, 0.9, 0.4
-aClipR clip aVco, 0, 0.9, 0.4
+aClipL clip aVco, 0, 0.9
+aClipR clip aVco, 0, 0.9
 
 kInstrCount active iInstr, 0, 1
 
@@ -667,8 +670,8 @@ endif
 
 if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     if kInstrCountScale != 0 then
-        aLeft = (aClipL * kMasterVol * 0.7) / kInstrCountScale
-        aRight = (aClipR * kMasterVol * 0.7) / kInstrCountScale
+        aLeft = (aVco * kMasterVol) / kInstrCountScale
+        aRight = (aVco * kMasterVol) / kInstrCountScale
     else
         aLeft init 0
         aRight init 0
