@@ -164,6 +164,7 @@ kStatus, kChannel, kb1, kb2    midiin
 
 if kChannel == iChannel then
 
+kSmallest chnget "smallest", iInstr, iNum
 kLargest chnget "largest", iInstr, iNum
 kNotes chnget "number_of_notes", iInstr, iNum
 kPrevNoteFreq chnget "prev_note_freq", iInstr, iNum
@@ -173,10 +174,14 @@ kKeyboardModeMidi chnget "keyboard_mode", iInstr, iNum
 kKeyboardMode round kKeyboardModeMidi
 
 kKeys[]  init   128
+kKeysSmall[]  init   128
 kCounter init   1
+kCounterSmall init   1
 kFreq mtof kb1
 kAmp = kb2 / 127
 
+kSmallest GetMin kKeysSmall, kSmallest
+kOldestInstrnum = iInstr + kChannel/100 + kSmallest/100000
 kInstrnum = iInstr + kChannel/100 + kb1/100000
 
 if kKeyboardMode == 0 then
@@ -185,31 +190,45 @@ if kKeyboardMode == 0 then
         if kInstrCount > 16 then
             turnoff2 kInstrnum, 4, 0
         endif
-        event "i", kInstrnum, 0, -1, kb1, kb2
+        kInstrCount active kOldestInstrnum, 0, 0
+        if kInstrCount > 15 then
+            kKeysSmall[kSmallest] = 0
+            turnoff2 kOldestInstrnum, 4, 0
+        endif
+        if kInstrCount == 0 then
+            kCounterSmall = 1
+        endif
+        event "i", kInstrnum, 0, -1, kb1, kb2, kPrevNoteFreq
     elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
-        event "i", -kInstrnum, 0, 0, kb1, kb2
+        event "i", -kInstrnum, 0, 0, kb1, kb2, kPrevNoteFreq
     endif
 endif
 
 if kStatus == 144 && kb2 != 0 then
+    kInstrCount active kInstrnum, 0, 0
+    if kKeyboardMode != 0 then
+        turnoff2 kInstrnum, 4, 0
+    endif
     if kNotes == 0 then
         if kKeyboardMode != 0 then
-            turnoff2 iInstr, 0, 1
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq, 1
+            turnoff2 iInstr, 0, 0
+            event "i", iInstr, 0, -1, kb1, kb2, kPrevNoteFreq, 1
         endif
         kCounter = 1
     else
         if kKeyboardMode == 1 then
             kPrevNoteFreq mtof kLargest
-            turnoff2 iInstr, 0, 1
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
+            turnoff2 kInstrnum, 4, 0
+            event "i", iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
         endif
         kCounter = kCounter + 1
+        kCounterSmall = kCounterSmall + 1
     endif
     kLargest   =   kb1
     kNotes = kNotes + 1
     kNoteOn = 1
     kKeys[kLargest] = kCounter
+    kKeysSmall[kLargest] = kCounterSmall
     kPrevNoteFreq = kFreq
 
 elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
@@ -219,16 +238,14 @@ elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
     if kNotes == 1 then
         kLargest = kb1
         if kKeyboardMode != 0 then
-            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, kPrevNoteFreq
-        else
-            event "i", -iInstr, 0, 0, kb1, kb2
+            event "i", -iInstr, 0, 0, kb1, kb2, kPrevNoteFreq
         endif
         kCounter = 0
     else
         kLargest GetMax kKeys, kLargest
         if kKeyboardMode == 1 then
-            schedkwhen  1, 0, 0, -iInstr, 0, 0, kb1, kb2, kPrevNoteFreq
-            schedkwhen  1, 0, 0, iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
+            turnoff2 iInstr, 4, 0
+            event "i", iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
         endif
     endif
 
@@ -237,7 +254,7 @@ elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
         kNoteOn = 0
     endif
     if kKeyboardMode != 0 && kNotes == 0 then
-        turnoff2 iInstr, 2, 1
+        turnoff2 iInstr, 0, 1
     endif
 endif
 
@@ -590,8 +607,8 @@ ASynthOut iInstr, iNum, aSendL, aSendR
 endop
 
 
-opcode ASynthPortamento, k, iiii
-iInstr, iNum, iFreq, iPreviousFreq xin
+opcode ASynthPortamento, k, iiki
+iInstr, iNum, kFreq, iPreviousFreq xin
 
 kKeyboardModeMidi chnget "keyboard_mode", iInstr, iNum
 kKeyboardMode round kKeyboardModeMidi
@@ -613,7 +630,7 @@ if kKeyboardMode == 0 then
         kPortamentoTime = 0
     endif
 
-    kFreq portk iFreq, 0.2 * kPortamentoTime, iPreviousFreq
+    kFreq portk kFreq, 0.2 * kPortamentoTime, iPreviousFreq
 else
     if kNotes <= 1 && kNoteOn == 1 && kPortamentoMode == 1 then
         kPortamentoTime = 0
@@ -704,12 +721,12 @@ iInstr = p1
 
 ib1 = p4
 ib2 = p5
-iFreq mtof ib1
+kFreq mtof ib1
 iAmp = ib2 / 127
 iPreviousFreq = p6
 iUserForMono = p7
 
-kFreq ASynthPortamento iInstr, 1, iFreq, iPreviousFreq
+kFreq ASynthPortamento iInstr, 1, kFreq, iPreviousFreq
 
 aLfoOsc ASynthLfo iInstr, 1, kFreq
 
@@ -736,6 +753,8 @@ aSendL, aSendR ASynthRender iInstr, 1, aVco, iUserForMono
 xout aSendL, aSendR
 endop
 
+maxalloc 1, 16
+maxalloc 3, 16
 
 instr 1
     aSendL, aSendR ASynth p1, p2, p3, p4, p5, p6, p7
