@@ -5,7 +5,7 @@
 <CsInstruments>
 
 sr = 48000
-ksmps = 256
+ksmps = 16
 nchnls = 2
 0dbfs = 1
 
@@ -41,32 +41,6 @@ while iIndex <= 127 do
     giTriangleSaw[iIndex] = iTableNumber
     iIndex = iIndex + 1
 od
-
-
-opcode FSynthOsc, aa, iiika
-iInstr, iNum, iAmp, iFreq, aSyncIn xin
-
-iShapeMidi chnget "osc_pulsewidth", iInstr, iNum
-iShape = iShapeMidi * 127
-iShape round iShape
-
-kSyncMidi chnget "osc_sync", iInstr, iNum
-kSync round kSyncMidi 
-
-if kSync == 1 then
-    aSync diff 1 - aSyncIn
-    aPhasor phasor iFreq
-else
-    aSync init 0
-    aPhasor init 0
-endif
-
-iNote = 69+12*log2(iFreq/440)
-kAmp = 1/15000
-aOut sfplaym iAmp, iNote, kAmp*iAmp, iFreq, iShape, 1
-
-xout aOut, aPhasor
-endop
 
 
 opcode chnget, a, Sii
@@ -155,10 +129,38 @@ xout kValue
 endop
 
 
+opcode FSynthOsc, aa, iiika
+iInstr, iNum, iAmp, iFreq, aSyncIn xin
+
+iShapeMidi chnget "osc_pulsewidth", iInstr, iNum
+iShape = iShapeMidi * 127
+iShape round iShape
+
+kSyncMidi chnget "osc_sync", iInstr, iNum
+kSync round kSyncMidi 
+
+if kSync == 1 then
+    aSync diff 1 - aSyncIn
+    aPhasor phasor iFreq
+else
+    aSync init 0
+    aPhasor init 0
+endif
+
+iNote = 69+12*log2(iFreq/440)
+kAmp = 1/15000
+aOut sfplaym iAmp, iNote, kAmp*iAmp, iFreq, iShape, 1
+
+xout aOut, aPhasor
+endop
+
+
 opcode AMonoSynth, 0, ii
 iInstr, iChannel xin
 
 iNum = 1
+iNumVoices = 16
+iMaxVoice = 1000
 
 kStatus, kChannel, kb1, kb2    midiin
 
@@ -174,38 +176,45 @@ kKeyboardModeMidi chnget "keyboard_mode", iInstr, iNum
 kKeyboardMode round kKeyboardModeMidi
 
 kKeys[]  init   128
-kKeysSmall[]  init   128
+kCurrentVoice init 0
+kActiveVoices[] init iNumVoices
+kActiveNote[] init 128
 kCounter init   1
-kCounterSmall init   1
 kFreq mtof kb1
 kAmp = kb2 / 127
 
-kSmallest GetMin kKeysSmall, kSmallest
-kOldestInstrnum = iInstr + kChannel/100 + kSmallest/100000
-kInstrnum = iInstr + kChannel/100 + kb1/100000
-
 if kKeyboardMode == 0 then
+    kInstrCount active iInstr, 0, 0
+    kInstrnum = iInstr + kCurrentVoice / (iMaxVoice * 10)
+    kCurrentVoiceIndex = kCurrentVoice % iNumVoices
     if kStatus == 144 && kb2 != 0 then
-        kInstrCount active kInstrnum, 0, 0
-        if kInstrCount > 16 then
+        if kInstrCount > iNumVoices - 1 then
+            if kActiveVoices[kCurrentVoiceIndex] != 0 then
+                kOldestInstrnum = kActiveVoices[kCurrentVoiceIndex]
+                kInstrnum = kOldestInstrnum
+            endif
+        endif
+
+        kActiveVoices[kCurrentVoiceIndex] = kInstrnum
+        kCurrentVoice = kCurrentVoice + 1
+        iMaxVoiceNumber = iMaxVoice - (iMaxVoice % iNumVoices)
+        if kCurrentVoice == iMaxVoiceNumber then
+            kCurrentVoice = 0
+        endif
+
+        if kInstrnum == kOldestInstrnum then
             turnoff2 kInstrnum, 4, 0
         endif
-        kInstrCount active kOldestInstrnum, 0, 0
-        if kInstrCount > 15 then
-            kKeysSmall[kSmallest] = 0
-            turnoff2 kOldestInstrnum, 4, 0
-        endif
-        if kInstrCount == 0 then
-            kCounterSmall = 1
-        endif
         event "i", kInstrnum, 0, -1, kb1, kb2, kPrevNoteFreq
+        kActiveNote[kb1] = kInstrnum
     elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
+        kInstrnum = kActiveNote[kb1]
         event "i", -kInstrnum, 0, 0, kb1, kb2, kPrevNoteFreq
     endif
 endif
 
 if kStatus == 144 && kb2 != 0 then
-    kInstrCount active kInstrnum, 0, 0
+    kInstrCount active iInstr, 0, 0
     if kKeyboardMode != 0 then
         turnoff2 kInstrnum, 4, 0
     endif
@@ -218,17 +227,14 @@ if kStatus == 144 && kb2 != 0 then
     else
         if kKeyboardMode == 1 then
             kPrevNoteFreq mtof kLargest
-            turnoff2 kInstrnum, 4, 0
             event "i", iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
         endif
         kCounter = kCounter + 1
-        kCounterSmall = kCounterSmall + 1
     endif
     kLargest   =   kb1
     kNotes = kNotes + 1
     kNoteOn = 1
     kKeys[kLargest] = kCounter
-    kKeysSmall[kLargest] = kCounterSmall
     kPrevNoteFreq = kFreq
 
 elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
@@ -244,7 +250,6 @@ elseif kStatus == 144 && kb2 == 0 || kStatus == 128 then
     else
         kLargest GetMax kKeys, kLargest
         if kKeyboardMode == 1 then
-            turnoff2 iInstr, 4, 0
             event "i", iInstr, 0, -1, kb1, kb2, kPrevNoteFreq
         endif
     endif
@@ -680,7 +685,7 @@ kInstrCount active iInstr, 0, 1
 
 if kKeyboardMode == 0 then
     kInstrCount active iInstr, 0, 0
-    kInstrCountScale port kInstrCount^0.5, 0.01
+    kInstrCountScale = kInstrCount^0.5
 else
     kInstrCountScale = 1
 endif
@@ -754,7 +759,9 @@ xout aSendL, aSendR
 endop
 
 maxalloc 1, 16
+prealloc 1, 16
 maxalloc 3, 16
+prealloc 3, 16
 
 instr 1
     aSendL, aSendR ASynth p1, p2, p3, p4, p5, p6, p7
