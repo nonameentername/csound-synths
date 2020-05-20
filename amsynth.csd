@@ -5,7 +5,7 @@
 <CsInstruments>
 
 sr = 48000
-ksmps = 16
+ksmps = 256
 nchnls = 2
 0dbfs = 1
 
@@ -437,8 +437,7 @@ kCutoff max kCutoff, 10
 
 if kType == 0 then
     ;lowpass
-    kResonance scale kResonanceMidi, 1.0, 0.0
-    aOut moogladder aIn, kCutoff, kResonance
+    aOut rbjeq aIn, kCutoff, 1, kResonance, 1, 0
 elseif kType == 1 then
     ;highpass
     aOut rbjeq aIn, 1 - kCutoff, 1, kResonance, 1, 2
