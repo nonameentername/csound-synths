@@ -11,10 +11,6 @@ nchnls = 2
 
 massign 0, 0
 
-#define SYNTH_PLAY #0#
-#define SYNTH_EDIT #1#
-#define SYNTH_RECORD #2#
-
 isf sfload  "FluidR3_GM.sf2"
 sfpassign   0, isf
 
@@ -46,16 +42,6 @@ while iIndex <= 127 do
     iIndex = iIndex + 1
 od
 
-giSeconds = 10
-giInstr[] init 128
-
-iIndex = 0
-while iIndex <= 127 do
-    giInstr[iIndex] ftgen 0, 0, -giSeconds*sr, 2, 0
-    iIndex = iIndex + 1
-od
-
-ftload "instrument.ftsave", 0, giInstr[1]
 
 opcode chnget, a, Sii
 SName, iInstr, iIndex xin
@@ -399,19 +385,19 @@ i16 = 1 / 16
 
 ;Filter
 iAttackMidi chnget "filter_attack", iInstr, iNum
-iAttack pow iAttackMidi, 2
-iAttack max iAttack, 0.0005
+iAttack pow iAttackMidi, 3
+iAttack = iAttack + 0.0005
 
 iDecayMidi chnget "filter_decay", iInstr, iNum
-iDecay pow iDecayMidi, 2
-iDecay max iDecay, 0.0005
+iDecay pow iDecayMidi, 3
+iDecay = iDecay + 0.0005
 
 iSustainMidi chnget "filter_sustain", iInstr, iNum
 iSustain = iSustainMidi
 
 iReleaseMidi chnget "filter_release", iInstr, iNum
-iRelease pow iReleaseMidi, 2
-iRelease max iRelease, 0.0005
+iRelease pow iReleaseMidi, 3
+iRelease = iRelease + 0.0005
 
 kResonanceMidi chnget "filter_resonance", iInstr, iNum
 kResonance scale kResonanceMidi, 20.0, 1.0
@@ -438,7 +424,7 @@ kCutoffBase = iTrackBaseFreq * (1 - kKeyTrack) + kFreq * kKeyTrack
 
 kCutoff = kCutoff * kCutoffBase * kVelocity * kCutoffLfo
 
-kFilterEnv linseg 0,iAttack,1,iDecay,iSustain
+kFilterEnv linsegr 0,iAttack,1,iDecay,iSustain,iRelease,0
 
 if kEnvAmount > 0 then
     kCutoff = kCutoff + kFreq * kFilterEnv * kEnvAmount
@@ -451,8 +437,7 @@ kCutoff max kCutoff, 10
 
 if kType == 0 then
     ;lowpass
-    kResonance scale kResonanceMidi, 1.0, 0.0
-    aOut moogladder2 aIn, kCutoff, kResonance
+    aOut rbjeq aIn, kCutoff, 1, kResonance, 1, 0
 elseif kType == 1 then
     ;highpass
     aOut rbjeq aIn, 1 - kCutoff, 1, kResonance, 1, 2
@@ -493,12 +478,12 @@ xout aOut
 endop
 
 
-opcode ASynthAmp, aa, iiaaa
-iInstr, iNum, aInLeft, aInRight, aLfo xin
+opcode ASynthAmp, a, iiaa
+iInstr, iNum, aIn, aLfo xin
 
 iAttackMidi chnget "amp_attack", iInstr, iNum
 iAttack pow iAttackMidi, 3
-iAttack max iAttack, 0.0005
+iAttack = iAttack + 0.0005
 
 ;declick
 if iAttack < 0.01 then
@@ -507,14 +492,14 @@ endif
 
 iDecayMidi chnget "amp_decay", iInstr, iNum
 iDecay pow iDecayMidi, 3
-iDecay max iDecay, 0.0005
+iDecay = iDecay + 0.0005
 
 iSustainMidi chnget "amp_sustain", iInstr, iNum
 iSustain = iSustainMidi
 
 iReleaseMidi chnget "amp_release", iInstr, iNum
 iRelease pow iReleaseMidi, 3
-iRelease max iRelease, 0.0005
+iRelease = iRelease + 0.0005
 
 ;declick
 if iRelease < 0.05 then
@@ -529,24 +514,14 @@ kEnvLfo = ( ( aLfo * 0.5 + 0.5 ) * kLfoAmp + 1 - kLfoAmp )
 
 kEnv linsegr 0,iAttack,1,iDecay,iSustain,iRelease,0
 kEnv = kEnv * kEnvLfo
-aOutLeft = aInLeft * kEnv
-aOutRight = aInRight * kEnv
+aOut = aIn * kEnv
 
-xout aOutLeft, aOutRight
-endop
-
-opcode ASynthSplit, aa, a
-aVco xin
-
-aOutLeft = aVco
-aOutRight = aVco
-
-xout aOutLeft, aOutRight
+xout aOut
 endop
 
 
-opcode ASynthOverDrive, aa, iiaa
-iInstr, iNum, aInLeft, aInRight xin
+opcode ASynthOverDrive, a, iia
+iInstr, iNum, aIn xin
 
 kDistMidi chnget "distortion_crunch", iInstr, iNum
 kDist = kDistMidi 
@@ -556,8 +531,16 @@ if kCrunch == 0 then
     kCrunch = 0.01
 endif
 
-aOutLeft powershape aInLeft, kCrunch
-aOutRight powershape aInRight, kCrunch
+aOut powershape aIn, kCrunch
+
+xout aOut
+endop
+
+opcode ASynthOverDrive, aa, iiaa
+iInstr, iNum, aInLeft, aInRight xin
+
+aOutLeft ASynthOverDrive iInstr, iNum, aInLeft
+aOutRight ASynthOverDrive iInstr, iNum, aInRight
 
 xout aOutLeft, aOutRight
 endop
@@ -620,9 +603,7 @@ iInstr xin
 iNum = 1
 
 aSendL, aSendR ASynthChannelGet iInstr, iNum
-
 aSendL, aSendR ASynthOverDrive iInstr, iNum, aSendL, aSendR
-
 aSendL, aSendR ASynthReverb iInstr, iNum, aSendL, aSendR
 
 ASynthOut iInstr, iNum, aSendL, aSendR
@@ -687,8 +668,8 @@ xout kFreq
 endop
 
 
-opcode ASynthRender, aa, iiaai
-iInstr, iNum, aInLeft, aInRight, iUserForMono xin
+opcode ASynthRender, aa, iiai
+iInstr, iNum, aVco, iUserForMono xin
 
 kMasterVolMidi chnget "master_vol", iInstr, iNum
 kMasterVol = kMasterVolMidi
@@ -696,8 +677,8 @@ kMasterVol = kMasterVolMidi
 kKeyboardModeMidi chnget "keyboard_mode", iInstr, iNum
 kKeyboardMode round kKeyboardModeMidi
 
-aClipL clip aInLeft, 0, 0.9
-aClipR clip aInRight, 0, 0.9
+aClipL clip aVco, 0, 0.9
+aClipR clip aVco, 0, 0.9
 
 kInstrCount active iInstr, 0, 1
 
@@ -710,8 +691,8 @@ endif
 
 if kKeyboardMode == 0 || kKeyboardMode == 1 || iUserForMono == 1 then
     if kInstrCountScale != 0 then
-        aLeft = (aInLeft * kMasterVol) / kInstrCountScale
-        aRight = (aInRight * kMasterVol) / kInstrCountScale
+        aLeft = (aVco * kMasterVol) / kInstrCountScale
+        aRight = (aVco * kMasterVol) / kInstrCountScale
     else
         aLeft init 0
         aRight init 0
@@ -737,39 +718,10 @@ chnset aSendR, "send_right", iInstr, iNum
 endop
 
 
-opcode ASynthWrite, 0, iia
-iInstr, iNum, aVco xin
-
-aindx linseg 0, giSeconds, 1
-
-tablew aVco, aindx, giInstr[iInstr], 1
-
-endop
-
-
-opcode ASynthRead, a, iiik
-iInstr, iNum, iAmp, kFreq xin
-
-kFreq = kFreq / 440
-
-iAttackMidi chnget "filter_attack", iInstr, iNum
-iAttack pow iAttackMidi, 2
-iAttack max iAttack, 0.0005
-
-istart = iAttack
-idur = 10 - iAttack - 0.05
-ifad = 0.05
-aOut flooper iAmp, kFreq, istart, idur, ifad, giInstr[iInstr]
-
-xout aOut
-endop
-
-
 opcode ASynth, aa, iiiiiip
 p1, p2, p3, p4, p5, p6, p7 xin
 
 iInstr = p1
-iNum = 1
 
 ib1 = p4
 ib2 = p5
@@ -782,62 +734,37 @@ kFreq ASynthPortamento iInstr, 1, kFreq, iPreviousFreq
 
 aLfoOsc ASynthLfo iInstr, 1, kFreq
 
-kSynthModeMidi chnget "synth_mode", iInstr, iNum
-kSynthMode round kSynthModeMidi
+kOsc1Freq ASynthLfoFreq iInstr, 1, kFreq, aLfoOsc
 
-if kSynthMode == $SYNTH_PLAY then
-    aVco ASynthRead iInstr, iNum, iAmp, kFreq
-else
-    kOsc1Freq ASynthLfoFreq iInstr, 1, kFreq, aLfoOsc
+kOsc2Freq ASynthDetune iInstr, 2, kFreq
 
-    kOsc2Freq ASynthDetune iInstr, 2, kFreq
+kOsc2Freq ASynthLfoFreq iInstr, 2, kOsc2Freq, aLfoOsc
 
-    kOsc2Freq ASynthLfoFreq iInstr, 2, kOsc2Freq, aLfoOsc
+aNone init 0
 
-    aNone init 0
+aOsc1, aOsc1Sync ASynthOsc iInstr, 1, iAmp, kOsc1Freq, aNone
 
-    aOsc1, aOsc1Sync ASynthOsc iInstr, 1, iAmp, kOsc1Freq, aNone
+aOsc2, aOsc2Sync ASynthOsc iInstr, 2, iAmp, kOsc2Freq, aOsc1Sync
 
-    aOsc2, aOsc2Sync ASynthOsc iInstr, 2, iAmp, kOsc2Freq, aOsc1Sync
+aVco ASynthMix iInstr, 1, aOsc1, aOsc2
 
-    aVco ASynthMix iInstr, 1, aOsc1, aOsc2
+aVco ASynthAmp iInstr, 1, aVco, aLfoOsc
 
-    aVco ASynthFilter iInstr, 1, aVco, aLfoOsc, kFreq, iAmp
-endif
+aVco ASynthFilter iInstr, 1, aVco, aLfoOsc, kFreq, iAmp
 
-if kSynthMode == $SYNTH_RECORD then
-    ASynthWrite iInstr, 1, aVco
-endif
-
-aSendL, aSendR ASynthSplit aVco
-
-aSendL, aSendR ASynthAmp iInstr, 1, aVco, aVco, aLfoOsc
-
-aSendL, aSendR ASynthRender iInstr, 1, aSendL, aSendR, iUserForMono
+aSendL, aSendR ASynthRender iInstr, 1, aVco, iUserForMono
 
 xout aSendL, aSendR
 endop
-
 
 maxalloc 1, 16
 prealloc 1, 16
 maxalloc 3, 16
 prealloc 3, 16
 
-
 instr 1
-    iInstr = 1
-    iNum = 1
-    chnset $SYNTH_PLAY, "synth_mode", iInstr, iNum
-    aSendL, aSendR ASynth iInstr, p2, p3, p4, p5, p6, p7
-    ASynthChannelSet iInstr, 1, aSendL, aSendR
-endin
-
-instr 2
-    iInstr = 1
-    iNum = 1
-    chnset $SYNTH_RECORD, "synth_mode", iInstr, iNum
-    aSendL, aSendR ASynth iInstr, p2, p3, p4, p5, p6, p7
+    aSendL, aSendR ASynth p1, p2, p3, p4, p5, p6, p7
+    ASynthChannelSet p1, 1, aSendL, aSendR
 endin
 
 instr 11
@@ -859,11 +786,6 @@ instr 31
     ASynthEffects iInstr
 endin
 
-instr save
-    iInstr = p4
-    ftsave "instrument.ftsave", 0, giInstr[1], giInstr[1]
-endin
-
 instr 99
 endin
 
@@ -874,6 +796,5 @@ f 0 3600
 i 11 0 -1
 i 31 0 -1
 i 99 0 -1
-i 80 0 -1
 </CsScore>
 </CsoundSynthesizer>
