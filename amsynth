@@ -3,10 +3,9 @@
 set -m
 
 killall csound
-killall amsynth_watch
+ps aux | grep amsynth_watch | tr -s ' ' | cut -d ' ' -f 2 | xargs kill
 
 ./amsynth_watch &
-AMSYNTH_WATCH_PID=$!
 
 csound -+rtmidi=jack -+rtaudio=jack -b 512 -i adc -o dac --port=1234 amsynth.csd &
 
@@ -34,4 +33,4 @@ jack_disconnect amsynth:Right "Stereo Amplifier:Input (Right)"
 
 fg
 
-kill $AMSYNTH_WATCH_PID
+ps aux | grep amsynth_watch | tr -s ' ' | cut -d ' ' -f 2 | xargs kill
