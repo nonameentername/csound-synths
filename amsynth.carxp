@@ -475,7 +475,7 @@
     <MappedMinimum>0</MappedMinimum>
     <MappedMaximum>1</MappedMaximum>
     <MidiCC>35</MidiCC>
-    <Value>0</Value>
+    <Value>0.509999990463257</Value>
    </Parameter>
 
    <Parameter>
@@ -501,7 +501,7 @@
     <MappedMinimum>0</MappedMinimum>
     <MappedMaximum>1</MappedMaximum>
     <MidiCC>77</MidiCC>
-    <Value>0</Value>
+    <Value>1</Value>
    </Parameter>
 
    <CustomData>
@@ -536,7 +536,7 @@
     <MappedMinimum>-1</MappedMinimum>
     <MappedMaximum>1</MappedMaximum>
     <MidiCC>84</MidiCC>
-    <Value>1</Value>
+    <Value>-1</Value>
    </Parameter>
   </Data>
  </Plugin>
