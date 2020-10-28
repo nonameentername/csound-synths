@@ -11,7 +11,9 @@ MIT License
 How to run
 ----------
 
-Download the release files `amsyth.so` and `amsyth.csd` and place them in vst2 folder `$HOME/.vst`
+Download the latest release file from [releases](https://github.com/nonameentername/csound-synths/releases)
+
+Extract the file and place the contents in the vst2 folder `$HOME/.vst`
 
 Development
 -----------
