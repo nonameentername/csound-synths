@@ -1,6 +1,8 @@
 csound-synths
 =============
 
+![amsynth](amsynth.png "AMSynth")
+
 License
 -------
 
