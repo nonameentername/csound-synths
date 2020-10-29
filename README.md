@@ -8,8 +8,8 @@ License
 
 MIT License
 
-How to run
-----------
+How to install
+--------------
 
 Download the latest release file from [releases](https://github.com/nonameentername/csound-synths/releases)
 
