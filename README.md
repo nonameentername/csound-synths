@@ -18,10 +18,19 @@ Extract the file and place the contents in the vst2 folder `$HOME/.vst`
 Development
 -----------
 
+Download the latest Cabbage release from [releases](https://github.com/rorywalsh/cabbage/releases)
+
+Run Cabbage and open the file `amsynth_cabbage.csd`
+
+Linux
+-----
+
+There is a Carla project to help with development of the synth.  The project depends on multiple modules that can be obtained from [kxstudio](https://kx.studio/)
+
 Open `amsynth.carxp` file in Carla
 
 Run amsynth:
 
     ./amsynth
 
-Saving amsynth settings in carla causes csound synth to update settings
+Saving amsynth settings in carla causes csound amsynth to update settings
